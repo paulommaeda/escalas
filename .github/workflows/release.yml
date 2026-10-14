@@ -1,0 +1,80 @@
+name: Validar e publicar plugin
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: escalas-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: local-test-only
+          MYSQL_DATABASE: ccs_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -plocal-test-only"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, mbstring, openssl
+          tools: wp-cli
+      - name: Sintaxe e busca de pessoas
+        run: |
+          set -euo pipefail
+          find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+          node --check assets/app.js
+          node --check assets/auth.js
+          node tests/people.cjs
+      - name: Instalar WordPress para testes
+        env:
+          MYSQL_PWD: local-test-only
+        run: |
+          set -euo pipefail
+          wp core download --path=/tmp/ccs-wp --quiet
+          wp config create --path=/tmp/ccs-wp --dbname=ccs_test --dbuser=root --dbpass=local-test-only --dbhost=127.0.0.1:3306 --quiet
+          wp core install --path=/tmp/ccs-wp --url=http://localhost --title=Test --admin_user=admin --admin_password=local-test-password --admin_email=admin@example.invalid --skip-email --quiet
+          ln -s "$GITHUB_WORKSPACE" /tmp/ccs-wp/wp-content/plugins/ccshalom-escalas
+          wp plugin activate ccshalom-escalas --path=/tmp/ccs-wp
+      - name: Fluxos e atualizador no WordPress
+        env:
+          CCS_WP_PATH: /tmp/ccs-wp
+        run: php tests/wordpress-smoke.php
+      - name: Gerar pacote
+        run: python3 scripts/package.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-instalavel
+          path: dist/ccshalom-escalas.zip
+  release:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gerar pacote e identificar versão
+        id: package
+        run: echo "version=$(python3 scripts/package.py)" >> "$GITHUB_OUTPUT"
+      - name: Publicar nova versão
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          set -euo pipefail
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "A versão v$VERSION já foi publicada; não será sobrescrita."
+          else
+            gh release create "v$VERSION" dist/ccshalom-escalas.zip --target "$GITHUB_SHA" --title "CCShalom Escalas $VERSION" --notes-file docs/RELEASE.md --latest
+          fi

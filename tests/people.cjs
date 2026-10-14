@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const src=fs.readFileSync('assets/app.js','utf8');
+const code=src.slice(src.indexOf('  const peoplePageSize'),src.indexOf('  const e='))+src.slice(src.indexOf('  function peoplePageData'),src.indexOf('  function renderPeople'));
+const ctx={};vm.runInNewContext(code+'globalThis.page=peoplePageData;',ctx);
+const users=Array.from({length:23},(_,i)=>({id:i+1,name:i===0?'João Ávila':'Pessoa '+(i+1)}));
+assert.equal(ctx.page(users,'',1).rows.length,10);
+assert.equal(ctx.page(users,'',3).rows.length,3);
+assert.equal(ctx.page(users,'',99).page,3);
+assert.equal(ctx.page(users,' JOAO ',1).rows[0].id,1);
+assert.equal(ctx.page(users,'ávila',1).total,1);
+assert.equal(ctx.page(users,'inexistente',1).total,0);
+users[0].deleted=true;assert.equal(ctx.page(users,'joao',1).total,0);
+console.log('PASS paginação, busca e exclusões');

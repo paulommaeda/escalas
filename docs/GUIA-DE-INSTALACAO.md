@@ -1,0 +1,214 @@
+# CCShalom Escalas — 0.9.0
+
+## Atualização
+
+Faça backup do site e do banco. Em **Plugins → Adicionar plugin → Enviar plugin**, envie `ccshalom-escalas-0.9.0.zip` e escolha substituir a versão instalada. Abra o painel de escalas: a migração é automática e preserva cadastros, datas, respostas, substituições e histórico. Atualize o cache dos arquivos CSS/JavaScript.
+
+As equipes existentes mantêm o modo anterior. Para adotar o novo processo, edite a equipe e escolha **Vagas por função**; cadastre suas funções antes de gerar novas datas. Escalas já publicadas não são convertidas nem duplicadas automaticamente. As novas equipes já usam vagas por função como padrão.
+
+## Instalação inicial
+
+WordPress individual (sem multisite), WordPress 6.4+, PHP 8.0+, MySQL/MariaDB com InnoDB e GET_LOCK. Use HTTPS na hospedagem definitiva. Configure o fuso da igreja em **Configurações → Geral** antes de publicar datas.
+
+Ative o plugin e abra **Escalas → Abrir painel de escalas**. A página criada contém `[ccshalom_escalas]`, normalmente em `/escalas/`, com interface independente do tema. Configure a entrega dos e-mails do WordPress para recuperação de senha.
+
+## Login próprio e cadastro
+
+O endereço da página de escalas passa a mostrar a tela de login do aplicativo quando não há sessão. O voluntário usa **Entrar com biometria** ou e-mail/usuário e senha. Cadastro, recuperação de senha, confirmação da nova senha e saída têm telas e redirecionamentos na mesma página do aplicativo, preservando o caminho do PWA. O wp-login continua disponível para administração e outros recursos do WordPress.
+
+O link **Cadastre-se** abre nome completo, e-mail, telefone com DDD e senha de 12 a 128 caracteres. A conta recebe o perfil **Voluntário**, somente com a capacidade read, equivalente ao assinante padrão. Não habilite o cadastro geral do WordPress para usar este formulário: ele não depende dessa opção.
+
+O cadastro fica ativo imediatamente, sem aprovação ou confirmação de e-mail. O voluntário escolhe suas funções no perfil e a liderança o vincula às equipes; criar uma conta não dá acesso às escalas de outras equipes. Usuários existentes podem receber um perfil de escalas em **Usuários → Editar**.
+
+A tela de recuperação depende da entrega de e-mails do WordPress. Ela apresenta a mesma mensagem para e-mails existentes e inexistentes. Redefinir a senha por recuperação revoga as passkeys da conta: depois de entrar, cadastre novamente os acessos desejados. A primeira entrada de contas criadas pelo pastor pode continuar sendo feita por recuperação de senha.
+
+## Biometria, Face ID ou PIN
+
+1. Entre com sua senha na página de escalas, pelo endereço HTTPS definitivo.
+2. Aceite a sugestão de ativação ou abra **Perfil → Acesso com biometria → Ativar neste dispositivo**.
+3. Dê um nome ao acesso, confirme sua senha atual e complete a verificação solicitada pelo aparelho.
+4. No próximo acesso, use **Entrar com biometria**, sem precisar digitar e-mail e senha. A senha continua disponível como alternativa.
+
+O recurso usa Passkeys/WebAuthn. O navegador/aparelho decide se pede digital, reconhecimento facial ou PIN. O plugin não recebe nem armazena impressões digitais, imagens faciais ou chaves privadas; guarda a chave pública e os dados necessários à verificação. Não é possível obrigar o aparelho a usar somente digital ou somente Face ID.
+
+Requer HTTPS, navegador com WebAuthn, bloqueio de tela configurado e OpenSSL no PHP. Há exceção HTTP apenas para desenvolvimento em localhost. Até dez acessos podem ser cadastrados por conta. O perfil mostra nome, data de cadastro e último uso. **Remover** revoga a chave para novos logins; sessões já abertas continuam até sair ou expirar. O provedor do aparelho pode sincronizar uma passkey entre dispositivos: remover essa chave invalida suas cópias sincronizadas.
+
+As chaves ficam vinculadas ao domínio usado no cadastro. Mudar o domínio requer entrar com senha e cadastrar novamente as passkeys. Use o mesmo domínio e protocolo em WordPress e no PWA. Um cadastro inativo não autentica por passkey. A ativação exige sessão válida e confirmação da senha atual.
+
+## Perfil do voluntário
+
+O perfil apresenta identificação, vínculo de liderança, resumo de equipes/funções/próximas escalas, os departamentos das equipes e as funções às quais o usuário está vinculado. Acesso administrativo a uma equipe não a inclui automaticamente na lista pessoal: aparecem equipes em que a pessoa é integrante ou líder.
+
+Há cartões com e-mail e telefone, acessos por biometria, recuperação de senha e saída. Para alterar dados ou vínculos, a pessoa procura a liderança. Equipes antigas sem funções cadastradas continuam aparecendo, com a indicação de que ainda não há função vinculada.
+
+## Ordem de configuração
+
+1. **Gestão → Equipes e escalas → Novo departamento**: nome e líder do departamento.
+2. **Nova equipe**: departamento, nome, líder, integrantes e modo **Vagas por função**. Inclua o líder entre os integrantes se ele também atuar.
+3. **Gestão → Cadastro geral de funções**: pastor ou líder de departamento cadastra Bateria, Guitarra, Teclado etc. Cada pessoa seleciona suas funções em **Perfil → Escolher minhas funções**. Em **Editar equipe** ou **Equipes → Selecionar funções**, escolha as funções existentes e a quantidade de vagas. Uma pessoa e uma função podem participar de várias equipes.
+4. **Gestão → Celebrações → Cadastrar celebração**: nome, horários, local e departamentos necessários.
+5. Em cada departamento, escolha equipes fixas, rodízio ou definição manual em cada data.
+6. **Gerar datas**: escolha a primeira data e, se desejar, repetições. Confira a prévia, ajuste equipes e publique.
+
+O sistema cria as vagas por função das equipes convocadas. Funções sem integrantes habilitados podem existir e ficam como necessidades a preencher. Uma equipe no modo por função precisa ter pelo menos uma função cadastrada para ser convocada.
+
+## Exemplo: domingo, 27/09/2026
+
+Cadastre a celebração Domingo e marque Artes. Na prévia dessa data, convoque Música 1 e Transmissão ao vivo, supondo que ambas pertençam a Artes. Se forem de departamentos diferentes, selecione cada departamento e sua equipe correspondente.
+
+| Equipe | Função | Quantidade | Integrantes habilitados |
+| --- | --- | --- | --- |
+| Música 1 | Guitarrista | 1 | Voluntário X |
+| Música 1 | Tecladista | 1 | Voluntário Y |
+| Transmissão ao vivo | Técnico | 1 | Voluntário Z |
+
+Cada integrante encontra a necessidade em **Minhas escalas → Vagas abertas**, abre a escala e escolhe **Assumir e confirmar esta vaga**. A escolha confirma a participação imediatamente. A mesma vaga não pode ser assumida por duas pessoas; horários conflitantes também são bloqueados.
+
+O líder abre a escala e escolhe **Delegar função**, selecionando um integrante habilitado. A atribuição já fica **Confirmada**, e o voluntário pode declinar e solicitar uma troca. Pastor e líder do departamento também podem delegar.
+
+## Necessidades específicas de uma data
+
+Na escala da equipe, use **Ajustar necessidades por função**, selecione a função e informe o total desejado para aquela data, incluindo vagas ocupadas. Isso não altera o padrão da equipe. Zero remove as vagas livres; vagas ocupadas impedem reduzir o total abaixo da quantidade de pessoas atribuídas.
+
+Vagas retiradas são arquivadas internamente, preservando seu histórico para os relatórios futuros. Renomear uma função ou mudar sua quantidade padrão vale para novas escalas; as já publicadas guardam o nome registrado na publicação. Alterar os integrantes habilitados afeta quem pode assumir vagas abertas, mas não desfaz participações já atribuídas.
+
+## Permissões pela hierarquia
+
+| Vínculo | Acesso |
+| --- | --- |
+| Administrador / Pastor | Pessoas, departamentos, equipes, funções, celebrações e todas as escalas. |
+| Líder de departamento | Gerencia o catálogo geral de funções e equipes/escalas do próprio departamento; define equipes nas datas já publicadas. |
+| Líder de equipe | Acompanha a equipe; seleciona funções gerais para a própria equipe; publica escalas abertas/por função; ajusta vagas e delega funções da própria equipe. |
+| Voluntário | Consulta suas equipes e escalas; escolhe suas funções no perfil, assume vagas e solicita substituição por alguém da mesma função. |
+
+Os campos de liderança delimitam o acesso. Ter apenas o perfil de líder não permite gerenciar outras equipes. O cadastro central de celebrações e a geração de datas são do pastor/administrador.
+
+Nomes de voluntários ativos ficam disponíveis no diretório para substituições. E-mail e telefone de outras pessoas são restritos ao pastor/administrador; cada usuário vê seus próprios dados no perfil. O telefone não fica exposto no diretório compartilhado.
+
+## Departamento sempre necessário, equipes alternadas
+
+Marque o departamento como obrigatório. Use **Rodízio: uma equipe por data**, ordenando as equipes, ou **Escolher em cada data**. Um departamento obrigatório pode ficar temporariamente sem equipe: aparecerá uma pendência para a liderança. Isso é diferente de uma equipe convocada com funções ainda sem voluntários.
+
+Equipes fixas participam de todas as datas geradas. No rodízio, a sequência continua entre lotes. A prévia permite trocar uma equipe em uma data. Alterar o modelo afeta somente novas datas.
+
+Trocar equipes numa ocorrência cancela as escalas anteriores daquele departamento nessa data e cria novas escalas. O formulário avisa sobre isso e rejeita alterações quando houve preenchimento de vagas depois de sua abertura. Cancelar uma ocorrência cancela suas escalas e convites pendentes.
+
+## Confirmações, liberação e substituições
+
+O voluntário pode confirmar, informar indisponibilidade ou liberar uma vaga aberta/por função para a equipe. Informar indisponibilidade preserva a atribuição para permitir convidar um substituto; liberar reabre a vaga para escolha.
+
+Após informar indisponibilidade, o responsável convida outro voluntário ativo com a mesma função no perfil, inclusive de outra equipe. A troca só acontece com aceite e sem conflito de horário. Para escalas antigas sem função definida, permanece a seleção de voluntários ativos. A função e o histórico da escala são preservados; não há aprovação adicional da liderança.
+
+Alterar horários de uma escala avulsa por função reabre suas vagas para nova escolha. Escalas ligadas a uma celebração acompanham os horários dela; o pastor pode usar “Editar esta data” na celebração. Mudar horários pede nova confirmação. Um usuário não pode ocupar funções simultâneas com horários sobrepostos, inclusive em equipes diferentes.
+
+## Modos anteriores
+
+Continuam disponíveis **Convocar equipe inteira**, que atribui uma convocação a cada integrante ativo, e **Vaga aberta**, com uma pessoa por equipe/data. As escalas existentes mantêm esses comportamentos. Líderes de equipe não publicam convocação de equipe inteira; isso cabe à liderança do departamento/pastor.
+
+## Identidade e PWA
+
+Em **Escalas** no wp-admin, informe a URL HTTPS do logo branco oficial. Sem logo, aparece CCShalom em texto. Montserrat está incluída localmente, com licença OFL; cores azul-marinho `#000A52`, azul `#001BE1` e branco. Login próprio, cadastro e perfil seguem essa identidade. O CSS de personalização do login nativo do WordPress também foi preservado.
+
+As telas priorizam celular, com campos legíveis, botões grandes, áreas seguras e navegação inferior. O login compacto e as ações de autenticação permanecem no caminho da página do aplicativo. O plugin ainda não instala um PWA: não inclui manifest, service worker, push ou uso offline. Na integração futura, use a página de escalas como entrada e preserve o fluxo de login. Não armazene em cache páginas autenticadas, cadastro, login, API, rotas passkeys ou ações; as respostas do sistema já enviam cabeçalhos para impedir cache. Ajuste também qualquer CDN/cache externo que ignore esses cabeçalhos.
+
+## GitHub e atualizações
+
+O atualizador existente aceita repositório público configurado como `organizacao/repositorio`. Uma release estável deve ter tag de versão e o arquivo `ccshalom-escalas.zip`. O fluxo em `.github/workflows/release.yml` pode montar esse pacote quando o código estiver num repositório. A autorização/política desse repositório continua aplicável. Repositórios privados não são suportados nesta versão. Nenhuma release foi publicada no GitHub por esta entrega.
+
+## Relatórios
+
+A base registra celebração, departamento via equipe, equipe, função, vaga, pessoa atribuída, resposta e histórico de ações. Nesta versão não há tela de relatórios nem registro de presença efetiva no dia: confirmação de participação não equivale a comprovação de comparecimento.
+
+## Dependência incluída
+
+A verificação WebAuthn usa lbuchs/WebAuthn 2.2.0, incluída no ZIP com licença MIT e namespace isolado para evitar conflitos com outros plugins. Não exige Composer na hospedagem. Os desafios expiram, são vinculados ao navegador e usados uma única vez; origem exata, identificação da conta, verificação do usuário e assinatura são conferidas no servidor.
+
+
+## Editar e excluir — versão 0.7.0
+
+- Departamentos e voluntários: Gestão → Editar. O botão de exclusão fica ao final do formulário.
+- Equipes: abra o formulário de edição. Funções gerais: Gestão → Cadastro geral de funções → Editar.
+- Escalas: abra a escala para editar ou excluir.
+- Celebrações: Gestão → Celebrações → Editar cadastro. Excluir o cadastro não exclui as datas já publicadas.
+- Para editar ou excluir uma data publicada e suas escalas, abra “Ver departamentos e equipes”. Alterar horários atualiza as escalas ativas vinculadas, verifica conflitos e exige nova confirmação dos participantes atribuídos.
+
+As permissões de liderança continuam sendo aplicadas pelo servidor. A exclusão exige confirmação e retira o registro do uso ativo, preservando os dados históricos; não há restauração pelo painel nesta versão.
+Departamentos com equipes, equipes com escalas ativas ou regras de celebrações e funções com vagas ativas exigem ajustar esses vínculos primeiro. O aviso indica o que precisa ser resolvido.
+Excluir um voluntário bloqueia o acesso ao aplicativo, remove os vínculos de equipe/função, revoga passkeys e libera vagas futuras. A conta WordPress permanece para preservar autoria e histórico. Não é permitido excluir a própria conta ou administradores neste painel; líderes precisam ser substituídos antes da exclusão.
+
+Homologue esta atualização em uma cópia do site antes da produção. Veja as limitações dos testes em VALIDACAO.md.
+
+
+## Funções e trocas — versão 0.7.0
+
+1. Cadastre **Bateria** uma vez no catálogo geral.
+2. O voluntário marca **Bateria** em seu perfil, mesmo antes de ter equipe.
+3. A liderança o vincula à Música 1 e, se desejar, a outras equipes. Cada equipe seleciona Bateria e define sua quantidade de vagas.
+4. Uma vaga aberta aparece aos integrantes com a função correspondente. Não há escolha automática entre vários bateristas: quem assume a vaga fica confirmado; a delegação pelo líder também confirma.
+5. Ao selecionar **Não posso participar** em uma vaga por função, abre o modal de troca. Ele lista os demais voluntários ativos que marcaram essa função, incluindo os de outras equipes.
+6. O escolhido recebe um pedido no **sino no canto superior direito**. No modal, vê solicitante, função, equipe, celebração, chegada, início, término e local. Pode aceitar ou recusar.
+7. O aceite transfere a vaga e confirma o substituto, sem vinculá-lo permanentemente à equipe. O servidor verifica novamente a função, os conflitos de horário e se o pedido continua válido. Até o aceite, a escala continua declinada e aguardando substituto.
+8. Cancelar a escala, liberar a vaga ou escolher outro substituto invalida o convite anterior. A recusa mantém a necessidade de substituição.
+
+O sino mostra pedidos pendentes, é consultado ao abrir o modal e atualizado a cada 30 segundos com o aplicativo aberto e visível. Não há push, aviso do sistema operacional, envio em segundo plano ou suporte offline.
+
+Na atualização, funções ativas antigas com nome igual (desconsiderando maiúsculas/minúsculas e espaços nas pontas) são reunidas no catálogo geral. Vínculos, quantidades por equipe e perfis são preservados; as vagas guardam o nome histórico. Nomes diferentes, como “Bateria” e “Baterista”, continuam separados. Participações antigas não são confirmadas retroativamente.
+Remover uma função do perfil não cancela escalas já assumidas. Remover a função da configuração da equipe não apaga vagas já publicadas; o líder pode ajustar as necessidades dessas datas separadamente. Excluir uma equipe não exclui suas funções gerais.
+
+
+## Perfis e atribuição de funções — 0.7.0
+
+| Perfil | Aba Gestão | Atribui funções a pessoas | Participa de escalas |
+| --- | --- | --- | --- |
+| Administrador | Sim | Sim | Sim |
+| Pastor | Sim | Sim | Sim |
+| Líder de departamento | Sim | Sim | Sim |
+| Líder de equipe | Não | Não; escolhe suas próprias funções | Sim |
+| Voluntário | Não | Não; escolhe suas próprias funções | Sim |
+| Secretaria | Sim, somente consulta | Não | Não |
+
+Em **Gestão → Pessoas cadastradas → Atribuir funções**, administrador, pastor e líder de departamento podem marcar as funções de uma pessoa ativa. Essa ação não altera o perfil de acesso nem remove escalas já assumidas. A atribuição usa o catálogo geral e permite preparar pessoas ainda sem equipe.
+
+A Secretaria pode consultar todos os dados do sistema de escalas: pessoas e contatos, funções, departamentos, equipes, celebrações, escalas e histórico. Pode gerenciar sua própria senha/passkeys, mas não alterar os cadastros ou participar de escalas. Não recebe permissões administrativas do WordPress.
+
+Para cadastrar Secretaria, o administrador/pastor escolhe **Secretaria (consulta)** no perfil da pessoa. Para converter alguém que já serve, primeiro libere ou cancele suas escalas futuras/em andamento e substitua seus vínculos de liderança. O sistema bloqueia a mudança enquanto essas pendências existirem. Mesmo uma alteração de perfil feita diretamente no WordPress não libera participação para Secretaria.
+
+A Gestão aparece para o perfil Líder de departamento mesmo antes de haver um departamento vinculado. O gerenciamento de equipes e escalas continua restrito aos departamentos sob sua liderança. Líderes de equipe acessam as ferramentas da própria equipe em **Equipes** e nos detalhes das escalas, sem a aba Gestão. A função de liderança exige o perfil correspondente, além do vínculo de líder no cadastro.
+
+
+## Importar pessoas — versão 0.8.0
+
+Apenas administradores do WordPress podem importar. Pastor, líder de departamento, líder de equipe, voluntário e Secretaria não recebem esta permissão pelo perfil de escalas.
+
+1. No WordPress, abra **Escalas → Importar pessoas**, ou use **Gestão → Importar pessoas** no aplicativo.
+2. Clique em **Baixar modelo CSV** e substitua a pessoa de exemplo pelos seus dados.
+3. Preencha as colunas abaixo e salve como **CSV UTF-8**. Aceita separador por vírgula ou ponto e vírgula, inclusive campos entre aspas. XLSX não é aceito diretamente: exporte a planilha como CSV UTF-8.
+4. Envie o arquivo e clique em **Validar e visualizar**.
+5. Confira os nomes, e-mails, perfis e avisos. Marque a confirmação e clique em **Importar pessoas**.
+6. Confira o resultado por linha. As linhas inválidas não são importadas; corrija-as e envie novamente. E-mails já cadastrados, inclusive fora do plugin, são ignorados e preservados.
+
+| Coluna | Regra |
+| --- | --- |
+| nome | Obrigatório; até 150 caracteres. |
+| email | Obrigatório; válido e exclusivo. Usado para login e recuperação de senha. |
+| telefone | Opcional; DDD e 10 a 15 dígitos. Aceita pontuação. |
+| perfil | Opcional; vazio significa voluntario. Valores: voluntario, lider_de_equipe, lider_de_departamento, pastor, secretaria. |
+
+Não é possível criar administradores, alterar contas existentes, importar senhas ou vincular equipes/funções por esse arquivo. Cada nova conta começa ativa; os vínculos com equipes e funções são feitos depois no aplicativo. Cada pessoa define a senha por **Perdeu a senha?**; configure o envio de e-mails do WordPress. O plugin não dispara e-mails durante a carga.
+
+Limites: **200 pessoas e 2 MB por arquivo**. A prévia fica vinculada ao administrador que a gerou, expira em até 1 hora e pode ser apagada em **Limpar prévia/resultado**. Enviar outro arquivo substitui a prévia anterior. O CSV não é publicado na biblioteca de mídia.
+
+
+## Busca de pessoas — 0.8.1
+Em **Gestão → Pessoas cadastradas**, digite parte do nome em **Buscar por nome**. A busca ignora acentos e diferenças entre maiúsculas/minúsculas e considera todas as pessoas ativas ou inativas que não foram excluídas. Cada página mostra até 10 pessoas; use **Anterior** e **Próxima**. Alterar a busca volta à primeira página. Os botões de edição e atribuição continuam respeitando as permissões do perfil.
+
+
+## Atualizações via GitHub — 0.9.0
+
+Repositório oficial: https://github.com/paulommaeda/escalas.
+
+Instale esta versão por ZIP uma vez. Depois, entre em **WordPress → Escalas → Atualizações**. O repositório já vem preenchido; mantenha a consulta habilitada. Use **Verificar agora** e depois **Abrir atualizador de plugins** para instalar uma versão nova.
+
+A opção **Permitir que o WordPress instale novas versões automaticamente** é facultativa. Sem ela, as atualizações ficam disponíveis para instalação manual. Com ela, o WordPress usa seu agendador e as permissões da hospedagem para instalar. Consultas malsucedidas exibem um aviso; nenhuma versão é instalada sem um pacote válido.
+
+O GitHub publica um pacote apenas após os testes do workflow passarem. Um simples commit com a mesma versão não gera uma nova release. O pacote oficial tem o nome ccshalom-escalas.zip e contém a pasta ccshalom-escalas; não utilize o ZIP genérico “Source code” do GitHub para a atualização automática.
