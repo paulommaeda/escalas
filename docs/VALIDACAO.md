@@ -1,3 +1,13 @@
+# Validação — versão 0.9.0
+
+A release 0.9.0 é publicada pelo workflow do repositório somente após aprovação das etapas de validação em GitHub Actions, com PHP 8.3, MySQL 8 e WordPress baixado durante a execução. O resultado público está em https://github.com/paulommaeda/escalas/actions.
+
+A rotina verifica sintaxe de todos os arquivos PHP e JavaScript; busca/paginação de pessoas; criação das tabelas e repetição da ativação; permissões dos perfis; cadastro e atribuição de funções; publicação/delegação; bloqueio de participação da Secretaria; troca entre equipes com aceite do destinatário; leitura e validação de CSV; integração do atualizador com o mecanismo nativo do WordPress, rejeição de URLs externas e pré-releases.
+
+O teste do atualizador usa respostas controladas do GitHub. O arquivo instalável é empacotado automaticamente com a pasta ccshalom-escalas e suas dependências. Os testes não simulam a instalação automática por WP-Cron, acesso ao servidor real da igreja, todos os plugins de segurança/cache ou biometria em aparelho físico.
+
+As anotações abaixo são históricas, referentes às versões anteriores e às limitações do ambiente existente naquelas datas.
+
 # Validação — versão 0.8.1
 
 25/09/2026: sintaxe JavaScript validada. Verificadas em execução isolada da função real: primeira/última página de uma lista com 23 pessoas; ajuste de página fora do limite; busca por parte do nome sem acentos e diferenças de caixa; nenhum resultado; exclusão de pessoas removidas. Não foi executada revisão visual em navegador. Busca e paginação operam sobre os dados já carregados; esta alteração não reduz o volume da API nem altera as permissões do servidor.

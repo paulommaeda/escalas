@@ -28,7 +28,6 @@ jobs:
         with:
           php-version: '8.3'
           extensions: mysqli, mbstring, openssl
-          tools: wp-cli
       - name: Sintaxe e busca de pessoas
         run: |
           set -euo pipefail
@@ -41,11 +40,12 @@ jobs:
           MYSQL_PWD: local-test-only
         run: |
           set -euo pipefail
-          wp core download --path=/tmp/ccs-wp --quiet
-          wp config create --path=/tmp/ccs-wp --dbname=ccs_test --dbuser=root --dbpass=local-test-only --dbhost=127.0.0.1:3306 --quiet
-          wp core install --path=/tmp/ccs-wp --url=http://localhost --title=Test --admin_user=admin --admin_password=local-test-password --admin_email=admin@example.invalid --skip-email --quiet
+          curl -fsSL --retry 3 https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
+          php /tmp/wp-cli.phar core download --path=/tmp/ccs-wp --quiet
+          php /tmp/wp-cli.phar config create --path=/tmp/ccs-wp --dbname=ccs_test --dbuser=root --dbpass=local-test-only --dbhost=127.0.0.1:3306 --quiet
+          php /tmp/wp-cli.phar core install --path=/tmp/ccs-wp --url=http://localhost --title=Test --admin_user=admin --admin_password=local-test-password --admin_email=admin@example.invalid --skip-email --quiet
           ln -s "$GITHUB_WORKSPACE" /tmp/ccs-wp/wp-content/plugins/ccshalom-escalas
-          wp plugin activate ccshalom-escalas --path=/tmp/ccs-wp
+          php /tmp/wp-cli.phar plugin activate ccshalom-escalas --path=/tmp/ccs-wp
       - name: Fluxos e atualizador no WordPress
         env:
           CCS_WP_PATH: /tmp/ccs-wp
@@ -73,6 +73,11 @@ jobs:
           VERSION: ${{ steps.package.outputs.version }}
         run: |
           set -euo pipefail
+          current_head=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
+          if [ "$current_head" != "$GITHUB_SHA" ]; then
+            echo "Há um commit mais recente; a publicação será feita por sua validação."
+            exit 0
+          fi
           if gh release view "v$VERSION" >/dev/null 2>&1; then
             echo "A versão v$VERSION já foi publicada; não será sobrescrita."
           else
