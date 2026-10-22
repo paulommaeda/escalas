@@ -1,6 +1,6 @@
 # CCShalom Escalas
 
-Plugin WordPress para equipes de voluntários, celebrações e vagas por função. Interface mobile first, login próprio, passkeys e notificações internas de troca.
+Plugin WordPress para eventos com departamentos, equipes de voluntários e vagas por função. Interface mobile first, login próprio, passkeys, sino de avisos e integração com Portal Push.
 
 ## Instalar
 
@@ -16,6 +16,20 @@ No WordPress, abra **Escalas → Atualizações**:
 4. Atualize na página **Plugins**. Se desejar, marque a instalação automática.
 
 A consulta usa somente releases estáveis com o arquivo **ccshalom-escalas.zip**. A instalação automática utiliza o agendador nativo do WordPress. Repositórios privados não são suportados.
+
+## Eventos e equipes
+
+Em **Gestão → Publicar evento**, informe a data, os horários e os departamentos necessários, com a quantidade de equipes de cada um. Não é preciso convocar antecipadamente cada equipe. O líder abre o evento ou a aba **Equipes** e assume a participação com sua equipe.
+
+A convocação segue o padrão da equipe: **equipe inteira**, **vaga aberta para uma pessoa** ou **vagas por função**. Todos os usuários ativos veem o evento completo, incluindo os demais departamentos e suas designações. Cada pessoa altera a própria participação; líderes atuam nas equipes/departamentos sob sua responsabilidade. A Secretaria continua somente em consulta.
+
+As escalas avulsas antigas com mesmo nome, local, horários e situação são agrupadas automaticamente, sem substituir vagas, confirmações ou trocas. Modelos de celebração, equipes fixas e rodízio continuam disponíveis.
+
+## Notificações no celular
+
+Ative o [Portal Push 0.4.0 ou posterior](https://github.com/paulommaeda/push-notifications) **no mesmo WordPress** e configure-o. Em **Perfil → Configurar notificações push**, cada pessoa autoriza seu aparelho. A integração envia avisos individuais de publicação, convocação, atribuição, mudanças e trocas usando a API e a fila do plugin existente. O sino funciona mesmo sem o Portal Push.
+
+A fila respeita os dispositivos e as preferências do Portal Push; registrar uma campanha não comprova entrega. HTTPS, suporte do navegador/PWA e processamento regular do WP-Cron são necessários para a entrega em segundo plano. O recebimento não é ativado sem a ação do usuário.
 
 ## E-mails e alterações de senha
 

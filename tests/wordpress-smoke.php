@@ -9,7 +9,7 @@ function act($uid,$data,$code=200) {
 }
 function latest($name) { global $wpdb;return (int)$wpdb->get_var('SELECT MAX(id) FROM '.CCS::table($name)); }
 check(get_option('ccs_db_version')===CCS_VERSION,'schema and version');
-foreach (['departments','teams','functions','team_functions','qualifications','events','slots','invites','celebrations','occurrences','audit','passkeys'] as $t) { check((bool)$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like(CCS::table($t)))),'table '.$t); }
+foreach (['departments','teams','functions','team_functions','qualifications','events','slots','invites','celebrations','occurrences','audit','passkeys','notifications'] as $t) { check((bool)$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like(CCS::table($t)))),'table '.$t); }
 $admin=get_user_by('login','admin')->ID;
 $users=[];foreach (['department','team','volunteer','secretary','pastor'] as $role) { $users[$role]=wp_insert_user(['user_login'=>'test_'.$role,'user_email'=>$role.'@example.invalid','user_pass'=>wp_generate_password(32),'role'=>'ccs_'.$role]);check(!is_wp_error($users[$role]),'create '.$role); }
 $d=$users['department'];$l=$users['team'];$v=$users['volunteer'];$s=$users['secretary'];$p=$users['pastor'];
@@ -41,6 +41,7 @@ wp_set_current_user($s);$state=CCS::state();check(count($state['teams'])===1 && 
 wp_set_current_user($admin);check(CCS::import_allowed(),'admin import');
 wp_set_current_user($p);check(!CCS::import_allowed(),'pastor not admin cannot import');
 require __DIR__.'/import.php';
+require __DIR__.'/events.php';
 $mock=['tag_name'=>'v9.9.9','draft'=>false,'prerelease'=>false,'body'=>'Release','assets'=>[['name'=>'ccshalom-escalas.zip','browser_download_url'=>'https://github.com/paulommaeda/escalas/releases/download/v9.9.9/ccshalom-escalas.zip']]];
 add_filter('pre_http_request',function($pre,$args,$url) use (&$mock) { if (str_starts_with($url,'https://api.github.com/repos/')) { return ['headers'=>[],'response'=>['code'=>200],'body'=>wp_json_encode($mock),'cookies'=>[]]; }return $pre; },10,3);
 wp_set_current_user($admin);

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: CCShalom — Escalas
- * Description: Login próprio, passkeys, perfil de voluntários e escalas por função.
- * Version: 0.10.2
+ * Description: Eventos com departamentos, equipes, voluntários por função e integração Portal Push.
+ * Version: 0.11.0
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: CCShalom
@@ -11,7 +11,7 @@
  * Update URI: https://github.com/paulommaeda/escalas
  */
 if (!defined('ABSPATH')) { exit; }
-define('CCS_VERSION', '0.10.2');
+define('CCS_VERSION', '0.11.0');
 define('CCS_FILE', __FILE__);
 define('CCS_DIR', plugin_dir_path(__FILE__));
 require_once CCS_DIR . 'includes/class-ccs.php';

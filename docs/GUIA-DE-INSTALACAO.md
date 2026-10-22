@@ -1,10 +1,10 @@
-# CCShalom Escalas — 0.10.2
+# CCShalom Escalas — 0.11.0
 
 ## Atualização
 
 Faça backup do site e do banco. Atualize em **Escalas → Atualizações → Verificar agora**. Para instalar pelo ZIP, envie `ccshalom-escalas.zip` em **Plugins → Adicionar plugin → Enviar plugin** e escolha substituir a versão instalada. Abra o painel de escalas: a migração é automática e preserva cadastros, datas, respostas, substituições e histórico. Atualize o cache dos arquivos CSS/JavaScript.
 
-As equipes existentes mantêm o modo anterior. Para adotar o novo processo, edite a equipe e escolha **Vagas por função**; cadastre suas funções antes de gerar novas datas. Escalas já publicadas não são convertidas nem duplicadas automaticamente. As novas equipes já usam vagas por função como padrão.
+As equipes existentes mantêm o modo anterior. Para adotar o novo processo, edite a equipe e escolha **Vagas por função**; cadastre suas funções antes de gerar novas datas. As escalas avulsas equivalentes são agrupadas em um evento, sem reconvocar pessoas nem alterar confirmações e substituições. As novas equipes já usam vagas por função como padrão.
 
 ## Instalação inicial
 
@@ -20,7 +20,7 @@ O endereço da página de escalas passa a mostrar a tela de login do aplicativo 
 
 O link **Cadastre-se** abre nome completo, e-mail, telefone com DDD e senha de 12 a 128 caracteres. A conta recebe o perfil **Voluntário**, somente com a capacidade read, equivalente ao assinante padrão. Não habilite o cadastro geral do WordPress para usar este formulário: ele não depende dessa opção.
 
-O cadastro fica ativo imediatamente, sem aprovação ou confirmação de e-mail. O voluntário escolhe suas funções no perfil e a liderança o vincula às equipes; criar uma conta não dá acesso às escalas de outras equipes. Usuários existentes podem receber um perfil de escalas em **Usuários → Editar**.
+O cadastro fica ativo imediatamente, sem aprovação ou confirmação de e-mail. O voluntário escolhe suas funções no perfil e a liderança o vincula às equipes; todos os usuários ativos podem acompanhar o evento completo, mas só alteram sua própria participação e as equipes sob sua liderança. Usuários existentes podem receber um perfil de escalas em **Usuários → Editar**.
 
 A tela de recuperação depende da entrega de e-mails do WordPress. Ela apresenta a mesma mensagem para e-mails existentes e inexistentes. Redefinir a senha por recuperação revoga as passkeys da conta: depois de entrar, cadastre novamente os acessos desejados. A primeira entrada de contas criadas pelo pastor pode continuar sendo feita por recuperação de senha.
 
@@ -43,30 +43,35 @@ O perfil apresenta identificação, vínculo de liderança, resumo de equipes/fu
 
 Há cartões com e-mail e telefone, acessos por biometria, recuperação de senha e saída. Para alterar dados ou vínculos, a pessoa procura a liderança. Equipes antigas sem funções cadastradas continuam aparecendo, com a indicação de que ainda não há função vinculada.
 
-## Ordem de configuração
+## Publicar um evento e assumir equipes
 
-1. **Gestão → Equipes e escalas → Novo departamento**: nome e líder do departamento.
-2. **Nova equipe**: departamento, nome, líder, integrantes e modo **Vagas por função**. Inclua o líder entre os integrantes se ele também atuar.
-3. **Gestão → Cadastro geral de funções**: pastor ou líder de departamento cadastra Bateria, Guitarra, Teclado etc. Cada pessoa seleciona suas funções em **Perfil → Escolher minhas funções**. Em **Editar equipe** ou **Equipes → Selecionar funções**, escolha as funções existentes e a quantidade de vagas. Uma pessoa e uma função podem participar de várias equipes.
-4. **Gestão → Celebrações → Cadastrar celebração**: nome, horários, local e departamentos necessários.
-5. Em cada departamento, escolha equipes fixas, rodízio ou definição manual em cada data.
-6. **Gerar datas**: escolha a primeira data e, se desejar, repetições. Confira a prévia, ajuste equipes e publique.
+1. Cadastre os departamentos, seus líderes e as equipes, com líder e integrantes.
+2. Em cada equipe, escolha o formato: **Convocar equipe inteira**, **Vaga aberta · 1 pessoa** ou **Vagas por função**. No terceiro formato, selecione funções gerais e quantidades. Os voluntários escolhem suas funções no Perfil e a liderança pode atribuí-las.
+3. Em **Gestão → Publicar evento**, informe nome, local, chegada, início e término. Selecione os departamentos necessários e quantas equipes de cada um precisam participar. O padrão é uma equipe. Pode repetir a publicação em até 12 datas.
+4. Cada líder encontra o evento no **Início** ou em **Equipes → Datas disponíveis para assumir**. Abre **Ver evento completo**, escolhe **Assumir com [equipe]** e confirma. Só pode assumir as equipes em que é líder; o líder de departamento também pode definir as equipes de seu departamento.
+5. A participação é criada com o modo cadastrado da equipe. Equipe inteira convoca todos os integrantes ativos para confirmar. Vaga aberta permite que um integrante escolha a única vaga. Vagas por função permite escolhas por pessoas habilitadas ou delegação pelo líder, já confirmadas.
+6. O aplicativo mostra um evento por data, incluindo todos os departamentos, equipes e pessoas designadas. A pessoa confirma, declina, assume ou troca suas próprias vagas. Ver outras participações não concede permissão de edição.
+7. Para tirar uma equipe, seu líder usa **Liberar participação da equipe**. Somente suas convocações e trocas pendentes são canceladas. O departamento volta a ter disponibilidade, preservando as demais equipes e o evento.
 
-O sistema cria as vagas por função das equipes convocadas. Funções sem integrantes habilitados podem existir e ficam como necessidades a preencher. Uma equipe no modo por função precisa ter pelo menos uma função cadastrada para ser convocada.
+Exemplo: publique Domingo com Artes e Comunicação. O líder da Música 1 assume Artes; o líder da Transmissão assume Comunicação. Em vagas por função, o guitarrista e o tecladista escolhem suas vagas, ou o líder os designa. Todos veem esses nomes e funções no mesmo evento.
 
-## Exemplo: domingo, 27/09/2026
+Um departamento sem equipes pode usar **Assumir pelo departamento**. O sistema cria uma participação direta com uma vaga aberta e o líder como integrante inicial. O líder de departamento pode organizar integrantes, funções e formato em Equipes; essas configurações valem para participações futuras. Se o departamento já tiver equipes, a participação deve ser assumida por uma delas.
 
-Cadastre a celebração Domingo e marque Artes. Na prévia dessa data, convoque Música 1 e Transmissão ao vivo, supondo que ambas pertençam a Artes. Se forem de departamentos diferentes, selecione cada departamento e sua equipe correspondente.
+Administrador/pastor publica envolvendo qualquer departamento. Líder de departamento publica envolvendo apenas os departamentos sob sua liderança. Alterar ou cancelar o evento inteiro exige administrar todos os seus departamentos; o líder de equipe continua restrito à sua equipe. Uma alteração de horário no evento pede nova confirmação aos participantes e invalida convites pendentes, preservando orientações específicas de cada equipe.
 
-| Equipe | Função | Quantidade | Integrantes habilitados |
-| --- | --- | --- | --- |
-| Música 1 | Guitarrista | 1 | Voluntário X |
-| Música 1 | Tecladista | 1 | Voluntário Y |
-| Transmissão ao vivo | Técnico | 1 | Voluntário Z |
+## Modelos de celebração
 
-Cada integrante encontra a necessidade em **Minhas escalas → Vagas abertas**, abre a escala e escolhe **Assumir e confirmar esta vaga**. A escolha confirma a participação imediatamente. A mesma vaga não pode ser assumida por duas pessoas; horários conflitantes também são bloqueados.
+Em **Gestão → Celebrações**, o pastor/administrador pode continuar cadastrando modelos e gerando datas. A regra **O líder da equipe assume a data** publica o departamento sem escolher a equipe antecipadamente. Também permanecem equipes fixas, rodízio e escolha manual. Cada data gerada aparece como um evento único. Mudar o modelo não altera as datas já publicadas.
 
-O líder abre a escala e escolhe **Delegar função**, selecionando um integrante habilitado. A atribuição já fica **Confirmada**, e o voluntário pode declinar e solicitar uma troca. Pastor e líder do departamento também podem delegar.
+## Push e sino de avisos
+
+Instale e ative [Portal Push 0.4.0+](https://github.com/paulommaeda/push-notifications) no mesmo WordPress. O plugin de escalas detecta a API automaticamente; não exige templates ou nova chave no Escalas. As chaves, dispositivos e configurações são do Portal Push.
+
+No aplicativo, cada pessoa abre **Perfil → Configurar notificações push** e escolhe **Ativar neste dispositivo**. O painel oficial do Portal Push permite testar e gerenciar aparelhos. A autorização é solicitada pelo botão. Preferências e bloqueios do Portal Push são respeitados.
+
+Avisos de evento disponível chegam às lideranças dos departamentos convocados. Ao assumir a data, a equipe recebe a convocação ou as vagas. Atribuições, alterações, cancelamentos, recusa e pedidos/respostas de troca geram avisos direcionados, disponíveis no sino. O toque no aviso abre o evento; se for necessário entrar, o login por senha ou passkey preserva o evento de destino.
+
+O Escalas registra avisos na mesma transação das alterações e só cria campanhas no Portal Push depois de salvar. Falha no push não desfaz a escala. Há deduplicação e até dez tentativas, dentro de sete dias. O WP-Cron retoma pendências; mantenha o cron do site funcionando. Campanha enfileirada não significa mensagem entregue. A entrega exige HTTPS, navegador/PWA compatível, permissão e inscrição ativa do aparelho. Sem Portal Push, o sino continua funcionando com o aplicativo aberto.
 
 ## Necessidades específicas de uma data
 
@@ -80,12 +85,12 @@ Vagas retiradas são arquivadas internamente, preservando seu histórico para os
 | --- | --- |
 | Administrador / Pastor | Pessoas, departamentos, equipes, funções, celebrações e todas as escalas. |
 | Líder de departamento | Gerencia o catálogo geral de funções e equipes/escalas do próprio departamento; define equipes nas datas já publicadas. |
-| Líder de equipe | Acompanha a equipe; seleciona funções gerais para a própria equipe; publica escalas abertas/por função; ajusta vagas e delega funções da própria equipe. |
-| Voluntário | Consulta suas equipes e escalas; escolhe suas funções no perfil, assume vagas e solicita substituição por alguém da mesma função. |
+| Líder de equipe | Acompanha a equipe; seleciona funções gerais para a própria equipe; assume a data pela própria equipe; ajusta vagas e delega funções da própria equipe. |
+| Voluntário | Consulta o evento completo e suas equipes; escolhe suas funções no perfil, assume vagas e solicita substituição por alguém da mesma função. |
 
 Os campos de liderança delimitam o acesso. Ter apenas o perfil de líder não permite gerenciar outras equipes. O cadastro central de celebrações e a geração de datas são do pastor/administrador.
 
-Nomes de voluntários ativos ficam disponíveis no diretório para substituições. E-mail e telefone de outras pessoas são restritos ao pastor/administrador; cada usuário vê seus próprios dados no perfil. O telefone não fica exposto no diretório compartilhado.
+Nomes de voluntários ativos ficam disponíveis no diretório para substituições. E-mail e telefone de outras pessoas são restritos aos perfis com acesso à Gestão; cada usuário vê seus próprios dados no perfil. O telefone não fica exposto no diretório compartilhado.
 
 ## Departamento sempre necessário, equipes alternadas
 
@@ -152,7 +157,7 @@ Homologue esta atualização em uma cópia do site antes da produção. Veja as 
 7. O aceite transfere a vaga e confirma o substituto, sem vinculá-lo permanentemente à equipe. O servidor verifica novamente a função, os conflitos de horário e se o pedido continua válido. Até o aceite, a escala continua declinada e aguardando substituto.
 8. Cancelar a escala, liberar a vaga ou escolher outro substituto invalida o convite anterior. A recusa mantém a necessidade de substituição.
 
-O sino mostra pedidos pendentes, é consultado ao abrir o modal e atualizado a cada 30 segundos com o aplicativo aberto e visível. Não há push, aviso do sistema operacional, envio em segundo plano ou suporte offline.
+O sino mostra pedidos pendentes e avisos pessoais, é consultado ao abrir o modal e atualizado a cada 30 segundos com o aplicativo aberto e visível. O push opcional é descrito acima. As alterações de escalas exigem conexão.
 
 Na atualização, funções ativas antigas com nome igual (desconsiderando maiúsculas/minúsculas e espaços nas pontas) são reunidas no catálogo geral. Vínculos, quantidades por equipe e perfis são preservados; as vagas guardam o nome histórico. Nomes diferentes, como “Bateria” e “Baterista”, continuam separados. Participações antigas não são confirmadas retroativamente.
 Remover uma função do perfil não cancela escalas já assumidas. Remover a função da configuração da equipe não apaga vagas já publicadas; o líder pode ajustar as necessidades dessas datas separadamente. Excluir uma equipe não exclui suas funções gerais.
@@ -175,7 +180,7 @@ A Secretaria pode consultar todos os dados do sistema de escalas: pessoas e cont
 
 Para cadastrar Secretaria, o administrador/pastor escolhe **Secretaria (consulta)** no perfil da pessoa. Para converter alguém que já serve, primeiro libere ou cancele suas escalas futuras/em andamento e substitua seus vínculos de liderança. O sistema bloqueia a mudança enquanto essas pendências existirem. Mesmo uma alteração de perfil feita diretamente no WordPress não libera participação para Secretaria.
 
-A Gestão aparece para o perfil Líder de departamento mesmo antes de haver um departamento vinculado. O gerenciamento de equipes e escalas continua restrito aos departamentos sob sua liderança. Líderes de equipe acessam as ferramentas da própria equipe em **Equipes** e nos detalhes das escalas, sem a aba Gestão. A função de liderança exige o perfil correspondente, além do vínculo de líder no cadastro.
+A Gestão aparece para o perfil Líder de departamento mesmo antes de haver um departamento vinculado. O gerenciamento de equipes e escalas continua restrito aos departamentos sob sua liderança. Líderes de equipe acessam as ferramentas da própria equipe em **Equipes** e nos detalhes das escalas, sem a aba Gestão. A liderança de equipe decorre do vínculo de líder no cadastro, inclusive quando a pessoa mantém o perfil Voluntário. Isso não concede acesso à Gestão.
 
 
 ## Importar pessoas — versão 0.10.1

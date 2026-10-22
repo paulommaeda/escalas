@@ -32,9 +32,19 @@ jobs:
         run: |
           set -euo pipefail
           find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+          node --check assets/event-views.js
           node --check assets/app.js
           node --check assets/auth.js
           node tests/people.cjs
+          node tests/events.cjs
+      - name: Interface mobile no navegador
+        env:
+          CCS_PLAYWRIGHT_MODULE: /tmp/ccs-browser/node_modules/playwright
+          CCS_BROWSER_EXECUTABLE: /usr/bin/google-chrome
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/ccs-browser --no-save --package-lock=false playwright@1.58.2
+          node tests/browser.cjs
       - name: Instalar WordPress para testes
         env:
           MYSQL_PWD: local-test-only
@@ -50,6 +60,16 @@ jobs:
         env:
           CCS_WP_PATH: /tmp/ccs-wp
         run: php tests/wordpress-smoke.php
+      - name: Integração com Portal Push 0.4.0
+        env:
+          CCS_WP_PATH: /tmp/ccs-wp
+        run: |
+          set -euo pipefail
+          git clone --quiet https://github.com/paulommaeda/push-notifications.git /tmp/ccs-portal-push
+          git -C /tmp/ccs-portal-push checkout --quiet 00b67938ceb0ccd453419961aac7486742f5d4b1
+          ln -s /tmp/ccs-portal-push /tmp/ccs-wp/wp-content/plugins/portal-push
+          php /tmp/wp-cli.phar plugin activate portal-push --path=/tmp/ccs-wp
+          php tests/push.php
       - name: Alteração de senha sem mail e compatibilidade SMTP
         env:
           CCS_WP_PATH: /tmp/ccs-wp

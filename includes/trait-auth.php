@@ -21,7 +21,8 @@ trait CCS_Auth {
         if ($wpdb->get_var($wpdb->prepare('SELECT id FROM '.self::table('teams').' WHERE active=1 AND leader_id=%d',$uid))) { return 'Líder de equipe'; }
         return 'Voluntário';
     }
-    public static function auth_url($screen='login') { return add_query_arg('ccs_auth',$screen,self::url()); }
+    public static function auth_destination() { $id=absint($_POST['ccs_event']??$_GET['ccs_event']??0);return $id?add_query_arg('ccs_event',$id,self::url()):self::url(); }
+    public static function auth_url($screen='login') { return add_query_arg('ccs_auth',$screen,self::auth_destination()); }
     public static function logout_url() { return wp_nonce_url(add_query_arg(['action'=>'ccs_auth','screen'=>'logout'],self::url()),'ccs_logout'); }
     public static function auth_binding($create=false) {
         $value=$_COOKIE['ccs_device_flow']??'';
@@ -36,13 +37,13 @@ trait CCS_Auth {
     public static function auth_assets() {
         wp_enqueue_style('ccs-account',plugins_url('assets/account.css',CCS_FILE),['ccs-app'],CCS_VERSION);
         wp_enqueue_script('ccs-auth',plugins_url('assets/auth.js',CCS_FILE),[],CCS_VERSION,true);
-        wp_localize_script('ccs-auth','CCS_AUTH',['api'=>rest_url('ccshalom/v1/'),'nonce'=>is_user_logged_in()?wp_create_nonce('wp_rest'):'','home'=>self::url(),'login'=>self::auth_url(),'enabled'=>self::passkey_available()]);
+        wp_localize_script('ccs-auth','CCS_AUTH',['api'=>rest_url('ccshalom/v1/'),'nonce'=>is_user_logged_in()?wp_create_nonce('wp_rest'):'','home'=>self::auth_destination(),'login'=>self::auth_url(),'enabled'=>self::passkey_available()]);
         self::auth_binding(true);
     }
     public static function auth_page($error='',$screen=null) {
         if ($screen===null) { $screen=sanitize_key($_GET['ccs_auth']??'login'); }
         if (!in_array($screen,['login','forgot','reset'],true)) { $screen='login'; }
-        if (is_user_logged_in() && $screen==='login') { wp_safe_redirect(self::url()); exit; }
+        if (is_user_logged_in() && $screen==='login') { wp_safe_redirect(self::auth_destination()); exit; }
         if (!defined('DONOTCACHEPAGE')) { define('DONOTCACHEPAGE',true); }
         nocache_headers(); header('Referrer-Policy: no-referrer'); show_admin_bar(false); self::assets();
         include CCS_DIR.'templates/login.php';
@@ -64,7 +65,7 @@ trait CCS_Auth {
                 $u=wp_signon(['user_login'=>sanitize_text_field($a['login']??''),'user_password'=>is_string($a['password']??null)?$a['password']:'','remember'=>!empty($a['remember'])],is_ssl());
                 if (is_wp_error($u)) { self::fail('Não foi possível entrar. Confira seu e-mail e senha ou procure a liderança se o cadastro estiver inativo.',403); }
                 if (!self::participant($u->ID)) { wp_clear_auth_cookie();self::fail('Seu cadastro não tem acesso ativo às escalas.',403); }
-                wp_safe_redirect(self::url());exit;
+                wp_safe_redirect(self::auth_destination());exit;
             }
             if ($screen==='forgot') {
                 add_filter('retrieve_password_message',function($message,$key,$login) {
@@ -83,3 +84,4 @@ trait CCS_Auth {
         } catch (CCS_Exception $e) { status_header($e->getCode()?:400); self::auth_page($e->getMessage(),$screen);exit; }
     }
 }
+

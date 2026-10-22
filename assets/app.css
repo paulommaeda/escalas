@@ -34,3 +34,34 @@ html.ccs-app-document{margin-top:0!important}body.ccs-standalone{margin:0;backgr
 .ccs-people-pagination span{font-size:12px}
 .ccs-people-pagination button{min-height:44px}
 #ccs-people-results .ccs-list-row>div{min-width:0;overflow-wrap:anywhere}
+
+
+/* One date, the whole program. */
+#ccs-app .ccs-unified-event{align-content:start;grid-template-columns:56px minmax(0,1fr)}
+.ccs-unified-event .ccs-event-overview,.ccs-unified-event .ccs-card-link{grid-column:1/-1}
+.ccs-event-overview{min-width:0;border-top:1px solid var(--ccs-line);margin-top:12px}
+.ccs-event-overview summary{cursor:pointer;min-height:48px;padding:14px 0;color:var(--ccs-navy);font-weight:600;font-size:12px}
+.ccs-program-department{padding:12px 0;border-top:1px solid var(--ccs-line);overflow-wrap:anywhere}
+#ccs-app .ccs-program-department h4{margin:0 0 8px;color:var(--ccs-navy)}
+#ccs-app .ccs-program-team{font-size:12px;font-weight:600;margin:12px 0 6px}
+.ccs-program-department ul{list-style:none;padding:0;margin:0}
+.ccs-program-department li{display:flex;gap:5px 8px;flex-wrap:wrap;align-items:center;padding:8px 0;border-top:1px solid #eef1f8;font-size:11px}
+.ccs-program-department li>span:first-child{flex-basis:100%;color:var(--ccs-muted)}
+.ccs-program-department li>strong{flex:1;min-width:0;overflow-wrap:anywhere}
+#ccs-dialog.ccs-event-dialog{max-width:780px}
+.ccs-team-participation{border:1px solid var(--ccs-line);border-radius:14px;background:#fff;margin-top:14px;padding:16px;min-width:0}
+.ccs-team-participation-heading{border-bottom:1px solid var(--ccs-line);padding-bottom:12px;margin-bottom:4px}
+.ccs-team-participation h4{color:var(--ccs-navy);margin:0 0 5px}
+.ccs-team-participation-heading>span{font-size:11px;color:var(--ccs-muted)}
+.ccs-team-tools{margin-top:14px}
+.ccs-event-department-choice{display:grid;grid-template-columns:minmax(0,1fr) 78px;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--ccs-line)}
+.ccs-event-department-choice .ccs-field{margin:0}
+.ccs-event-department-choice .ccs-check{overflow-wrap:anywhere;font-weight:600}
+.ccs-team-opportunities{margin-top:28px}
+.ccs-notification-unread{border-left:3px solid var(--ccs-blue);padding-left:12px;background:#f7f9ff}
+#ccs-push-panel{margin-bottom:20px;min-width:0}
+#ccs-push-panel .ppush-card{max-width:100%;margin:0;border-radius:18px;border:1px solid var(--ccs-line);background:#fff;padding:22px;font-family:var(--ccs-font)}
+#ccs-push-panel button{min-height:44px;white-space:normal}
+#ccs-push-panel h2{font-size:19px}
+#ccs-push-panel input{max-width:100%}
+@media(min-width:700px){#ccs-app .ccs-unified-event{grid-template-columns:64px minmax(0,1fr)}.ccs-program-department li>span:first-child{flex-basis:34%}}

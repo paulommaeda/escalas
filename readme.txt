@@ -2,7 +2,7 @@
 Contributors: ccshalom
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 0.10.2
+Stable tag: 0.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,12 +13,21 @@ Cadastro de voluntários, celebrações, equipes e vagas por função.
 2. Para atualizar, substitua a versão instalada. A migração preserva os registros.
 3. Abra Escalas > Abrir painel de escalas.
 4. Cadastre funções gerais. Voluntários escolhem suas funções no perfil; líderes vinculam pessoas e funções às equipes.
-5. Em Gestão > Celebrações, cadastre o modelo, as regras e gere as datas.
+5. Em Gestão > Publicar evento, escolha a data e os departamentos necessários. Lideranças assumem a participação das equipes.
 6. Voluntários escolhem vagas em Minhas escalas > Vagas abertas.
 
 Guia completo: docs/GUIA-DE-INSTALACAO.md.
 
 == Changelog ==
+= 0.11.0 =
+Evento único por data com todos os departamentos, equipes e designações.
+Publicação por departamentos; líderes assumem datas seguindo o modo de convocação da equipe.
+Quantidade de equipes necessária, participação direta de departamentos sem equipes e manutenção de modelos/rodízio.
+Visão completa para voluntários, com alterações restritas à própria participação e liderança.
+Migração agrupa escalas avulsas anteriores, preservando vagas, confirmações, trocas e histórico.
+Sino com avisos pessoais e pedidos de troca; integração opcional com Portal Push 0.4.0+.
+Ativação de dispositivo no perfil, links diretos para o evento e fila de push com tentativas e deduplicação.
+
 = 0.10.2 =
 Corrige erro crítico ao alterar senha quando a função mail() está indisponível na hospedagem.
 Falha do transporte nativo retorna erro de envio; alteração de senha pode concluir normalmente.

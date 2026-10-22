@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) { exit; }
 trait CCS_Functions {
     public static function leads_team($id) {
         $t=self::team($id);
-        return !self::secretary() && $t && (self::manages_team($id) || (in_array('ccs_team',wp_get_current_user()->roles,true) && (int)$t['leader_id']===get_current_user_id()));
+        return !self::secretary() && $t && !empty($t['active']) && (self::manages_team($id) || ((int)$t['leader_id']===get_current_user_id() && self::participant(get_current_user_id())));
     }
     public static function can_catalog() {
         return self::management_access() && !self::secretary();
@@ -104,7 +104,8 @@ trait CCS_Functions {
             $to=absint($a['to_id']??0); self::require_that(self::qualified($s['team_id'],$s['function_id'],$to),'Escolha um integrante cadastrado nesta função.',400);
             self::require_that(!self::conflict($to,$s['arrival'],$s['ends'],$id),'O voluntário já está escalado neste horário.',409);
             self::update('slots',['original_id'=>$to,'assigned_id'=>$to,'status'=>'confirmed'],['id'=>$id]);
-            self::audit('function_delegated',$s['event_id'],'slot='.$id.';to='.$to);
+            $audit=self::audit('function_delegated',$s['event_id'],'slot='.$id.';to='.$to);
+            self::notify_people([$to],'assigned','Sua participação está confirmada',$s['function_name'].' · '.self::event_title($s['event_id']).'. Você pode consultar o evento, declinar ou solicitar uma troca.',$s['occurrence_id'],$s['event_id'],'delegation:'.$audit);
             return 'Função atribuída e confirmada. O voluntário pode declinar e solicitar uma troca.';
         case 'vacancies':
             $event=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.self::table('events').' WHERE id=%d',$id),ARRAY_A);
@@ -121,7 +122,8 @@ trait CCS_Functions {
             for ($i=0;$i<count($slots)-$quantity;$i++) { self::update('slots',['status'=>'withdrawn'],['id'=>$free[$i]['id']]); }
             self::audit('function_vacancies_changed',$id,'function='.$fid.';quantity='.$quantity);
             return 'Necessidades desta celebração atualizadas. O padrão da equipe foi preservado.';
-        default: return self::celebration_action($a);
+        default: return self::event_action($a);
         }
     }
 }
+

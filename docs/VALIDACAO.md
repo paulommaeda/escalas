@@ -1,3 +1,17 @@
+# Validação — versão 0.11.0
+
+O workflow valida sintaxe PHP/JavaScript e executa os testes abaixo antes de publicar a release. Execuções e resultados: https://github.com/paulommaeda/escalas/actions.
+
+`tests/events.php` integra WordPress/MySQL via REST: publicação sem escalas antecipadas, departamentos solicitados, capacidade, repetição sem duplicatas, liderança por vínculo, modos functions/open/roster, delegação, voluntariado, substituição entre equipes, acesso ao evento completo sem exposição de contatos/membros de outras equipes, isolamento das alterações, edição global com nova confirmação, orientação da equipe preservada, seleção de equipes sem reconvocar as mantidas, participação direta, Secretaria, avisos privados e migração idempotente preservando IDs e histórico. Testes de capacidade sequenciais verificam a recusa da segunda equipe; o bloqueio MySQL serializa as mutações, mas o teste não mede alto volume simultâneo.
+
+`tests/push.php` carrega o Portal Push real, fixado no commit 00b67938ceb0ccd453419961aac7486742f5d4b1 (0.4.0). Confere público individual, limites Unicode, deduplicação mesmo após perda de confirmação, opção de recusa preservada, perfil inativo, falha do provedor após criação da campanha sem desfazer o salvamento, recuperação e limite de tentativas. Não cadastra dispositivos reais nem envia a celulares. A fila do provedor é executada com zero inscrições.
+
+`tests/events.cjs` verifica a renderização unificada e ações conforme permissões. `tests/browser.cjs` usa o JavaScript/CSS reais com API simulada em Chromium: um cartão por evento, programação completa, ações próprias, sino, login por link direto já autenticado, formulário de publicação, liderança e preservação do elemento/listeners do painel de push entre navegações. Verifica ausência de rolagem horizontal em 360, 390 e 768 pixels. A autorização real é validada separadamente pelos testes REST.
+
+Permanecem as regressões de importação, busca/paginação, atualizador, alteração de senha com mail() desabilitada e SMTP local. Os testes não validam entrega de push em aparelho físico, Safari/iOS instalado, permissão real do usuário, configuração do cron da hospedagem ou combinação com todos os plugins de PWA/cache. Não foi alterado o servidor da igreja.
+
+Registros históricos abaixo.
+
 # Validação — versão 0.10.2
 
 A release 0.10.2 é publicada pelo workflow do repositório somente após aprovação das etapas de validação em GitHub Actions, com PHP 8.3, MySQL 8 e WordPress baixado durante a execução. O resultado público está em https://github.com/paulommaeda/escalas/actions.

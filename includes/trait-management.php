@@ -11,19 +11,26 @@ trait CCS_Management {
         $rows=$wpdb->get_results($wpdb->prepare('SELECT e.*,s.id slot_id,s.assigned_id,s.status slot_status FROM '.self::table('events').' e LEFT JOIN '.self::table('slots')." s ON s.event_id=e.id WHERE e.occurrence_id=%d AND e.status='published' ORDER BY e.id,s.id",$id),ARRAY_A);
         return hash('sha256',wp_json_encode([$o,$rows]));
     }
-    private static function remove_event($id) {
-        self::cancel_event($id);self::update('events',['status'=>'deleted'],['id'=>$id]);self::audit('schedule_deleted',$id);
+    private static function remove_event($id,$notify=true) {
+        self::cancel_event($id,$notify);self::update('events',['status'=>'deleted'],['id'=>$id]);self::audit('schedule_deleted',$id);
     }
     private static function management_action($a) {
         global $wpdb;$id=absint($a['id']??0);
         if (($a['action']??'')==='edit_occurrence') {
-            self::require_that(self::pastor());$o=self::occurrence($id);
+            $o=self::occurrence($id);self::require_that(self::can_manage_occurrence($o));
             self::require_that($o['status']==='published' && $o['starts']>current_time('mysql'),'Somente uma celebração futura e ativa pode ser editada.',409);
             self::require_that(is_string($a['fingerprint']??null) && hash_equals(self::occurrence_fingerprint($id),$a['fingerprint']),'A celebração ou suas participações mudaram. Feche e atualize antes de editar.',409);
             $start=self::datetime($a['starts']??'');$end=self::datetime($a['ends']??'');$arrival=self::datetime($a['arrival']??'');
             self::require_that($arrival<=$start && $end>$start && $start>current_datetime(),'Confira as datas e horários.',400);
             $data=['title'=>self::text($a,'title'),'location'=>sanitize_text_field($a['location']??''),'notes'=>sanitize_textarea_field($a['notes']??''),'arrival'=>$arrival->format('Y-m-d H:i:s'),'starts'=>$start->format('Y-m-d H:i:s'),'ends'=>$end->format('Y-m-d H:i:s')];
-            self::require_that(!$wpdb->get_var($wpdb->prepare('SELECT id FROM '.self::table('occurrences')." WHERE celebration_id=%d AND starts=%s AND status='published' AND id<>%d",$o['celebration_id'],$data['starts'],$id)),'Já existe esta celebração nesse horário.',409);
+            $duplicate=(int)$o['celebration_id']?$wpdb->get_var($wpdb->prepare('SELECT id FROM '.self::table('occurrences')." WHERE celebration_id=%d AND starts=%s AND status='published' AND id<>%d",$o['celebration_id'],$data['starts'],$id)):$wpdb->get_var($wpdb->prepare('SELECT id FROM '.self::table('occurrences')." WHERE title=%s AND location=%s AND starts=%s AND status='published' AND id<>%d",$data['title'],$data['location'],$data['starts'],$id));
+            self::require_that(!$duplicate,'Já existe este evento nesse horário e local.',409);
+            $rules=null;
+            if (array_key_exists('requirements',$a)) {
+                $rules=self::event_requirements($a['requirements'],$o['rules_snapshot']);$selected=array_map(fn($r)=>(int)$r['department_id'],$rules);
+                foreach ($o['rules_snapshot'] as $r) { if (!in_array((int)$r['department_id'],$selected,true)) { self::require_that(!self::occurrence_team_events($id,$r['department_id']),'Libere as equipes deste departamento antes de removê-lo do evento.',409); } }
+                foreach ($rules as $r) { self::require_that(count(self::occurrence_team_events($id,$r['department_id']))<=$r['team_count'],'Libere participações antes de reduzir a quantidade de equipes.',409); }
+            }
             $changed=$data['starts']!==$o['starts'] || $data['arrival']!==$o['arrival'] || $data['ends']!==$o['ends'];
             $events=$wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('events')." WHERE occurrence_id=%d AND status='published'",$id),ARRAY_A);
             $ids=array_map(fn($e)=>(int)$e['id'],$events);$seen=[];
@@ -41,9 +48,13 @@ trait CCS_Management {
                         self::update('invites',['status'=>'cancelled'],['slot_id'=>$slot['id'],'status'=>'pending']);
                     }
                 }
-                self::update('events',$data,['id'=>$event['id']]);self::audit('celebration_date_edited',$event['id'],wp_json_encode(['before'=>$event,'after'=>$data,'confirmation_reset'=>$changed]));
+                $team_data=$data;unset($team_data['notes']);
+                self::update('events',$team_data,['id'=>$event['id']]);self::audit('celebration_date_edited',$event['id'],wp_json_encode(['before'=>$event,'after'=>$team_data,'confirmation_reset'=>$changed]));
             }
-            self::update('occurrences',$data,['id'=>$id]);self::audit('occurrence_edited',0,'occurrence='.$id);
+            if ($rules!==null) { $data['rules_snapshot']=wp_json_encode($rules); }
+            self::update('occurrences',$data,['id'=>$id]);$audit=self::audit('occurrence_edited',0,'occurrence='.$id);
+            self::notify_occurrence_changed($id,'event_updated',$audit);
+            if ($rules!==null) { self::notify_event_published($id); }
             return $changed?'Data e horários atualizados em todas as equipes. As pessoas atribuídas precisam confirmar novamente.':'Celebração e escalas vinculadas atualizadas.';
         }
         if (($a['action']??'')!=='delete') { return self::function_action($a); }
@@ -55,8 +66,9 @@ trait CCS_Management {
             self::require_that($e && self::can_manage_event($e));self::require_that($e['status']!=='deleted','Esta escala já foi excluída.',409);
             self::remove_event($id);return 'Escala excluída da agenda. O histórico foi preservado.';
         case 'occurrence':
-            self::require_that(self::pastor());$o=self::occurrence($id);self::require_that($o['status']!=='deleted','Esta data já foi excluída.',409);
-            foreach ($wpdb->get_col($wpdb->prepare('SELECT id FROM '.self::table('events')." WHERE occurrence_id=%d AND status<>'deleted'",$id)) as $event) { self::remove_event($event); }
+            $o=self::occurrence($id);self::require_that(self::can_manage_occurrence($o));self::require_that($o['status']!=='deleted','Esta data já foi excluída.',409);
+            $audit=self::audit('event_deleted',0,'occurrence='.$id);self::notify_occurrence_changed($id,'event_cancelled',$audit);
+            foreach ($wpdb->get_col($wpdb->prepare('SELECT id FROM '.self::table('events')." WHERE occurrence_id=%d AND status<>'deleted'",$id)) as $event) { self::remove_event($event,false); }
             self::update('occurrences',['status'=>'deleted'],['id'=>$id]);break;
         case 'celebration':
             self::require_that(self::pastor());self::require_active('celebrations',$id);
@@ -66,6 +78,9 @@ trait CCS_Management {
             self::require_that(!$wpdb->get_var($wpdb->prepare('SELECT id FROM '.self::table('teams').' WHERE department_id=%d AND active=1',$id)),'Exclua primeiro as equipes deste departamento.',409);
             foreach ($wpdb->get_results('SELECT * FROM '.self::table('celebrations').' WHERE active=1',ARRAY_A) as $c) {
                 foreach (json_decode($c['rules'],true)?:[] as $r) { self::require_that((int)$r['department_id']!==$id,'Retire este departamento do cadastro da celebração “'.$c['name'].'” antes de excluí-lo.',409); }
+            }
+            foreach ($wpdb->get_results($wpdb->prepare('SELECT title,rules_snapshot FROM '.self::table('occurrences')." WHERE status='published' AND ends>%s",current_time('mysql')),ARRAY_A) as $o) {
+                foreach (json_decode($o['rules_snapshot'],true)?:[] as $r) { self::require_that((int)$r['department_id']!==$id,'Retire este departamento do evento “'.$o['title'].'” antes de excluí-lo.',409); }
             }
             self::update('departments',['active'=>0],['id'=>$id]);break;
         case 'team':
@@ -98,3 +113,4 @@ trait CCS_Management {
         return $type==='celebration'?'Cadastro da celebração excluído. As datas já publicadas continuam na agenda.':'Item excluído dos cadastros ativos. O histórico foi preservado.';
     }
 }
+

@@ -1,0 +1,57 @@
+<?php
+require getenv('CCS_WP_PATH').'/wp-load.php';
+use PauloMaeda\PortalPush\Core as PushCore;
+use PauloMaeda\PortalPush\Audience as PushAudience;
+use PauloMaeda\PortalPush\Queue as PushQueue;
+$checks=0;
+function push_check($value,$label) { global $checks;if (!$value) { throw new Exception('FAIL '.$label); }$checks++;echo "PASS $label\n"; }
+$pp_admin=(int)get_user_by('login','admin')->ID;$pp_user=(int)get_user_by('login','event_baterista')->ID;
+wp_set_current_user($pp_admin);
+push_check(CCS::push_available(),'Portal Push 0.4 API detected');
+push_check((int)$wpdb->get_var('SELECT COUNT(*) FROM '.PushCore::table('subscriptions'))===0,'integration uses no real device subscriptions');
+for ($i=0;$i<30;$i++) { CCS::flush_push(); }
+push_check(!(int)$wpdb->get_var('SELECT COUNT(*) FROM '.CCS::table('notifications')." WHERE push_status IN ('pending','retry')"),'pending internal notices forwarded to actual Portal Push API');
+$pp_before=(int)$wpdb->get_var('SELECT COUNT(*) FROM '.PushCore::table('campaigns'));
+CCS::notify_people([$pp_user],'integration','Designação confirmada',str_repeat('Ç',500),0,0,'integration-long');
+$pp_id=(int)$wpdb->insert_id;CCS::flush_push();
+$pp_campaign=$wpdb->get_row('SELECT * FROM '.PushCore::table('campaigns').' ORDER BY id DESC LIMIT 1');
+push_check((int)$wpdb->get_var('SELECT COUNT(*) FROM '.PushCore::table('campaigns'))===$pp_before+1,'one campaign created per recipient notification');
+push_check(json_decode($pp_campaign->audience_ids,true)===[$pp_user] && $pp_campaign->audience_type==='people','campaign targets exact WordPress user without global or role broadcast');
+push_check(mb_strlen($pp_campaign->message)===300 && mb_check_encoding($pp_campaign->message,'UTF-8'),'long Unicode notification respects Portal Push message limit');
+push_check($wpdb->get_var($wpdb->prepare('SELECT push_status FROM '.CCS::table('notifications').' WHERE id=%d',$pp_id))==='queued','queued status records campaign creation without claiming delivery');
+CCS::notify_people([$pp_user],'integration','Designação confirmada','Repetida',0,0,'integration-long');
+$wpdb->update(CCS::table('notifications'),['push_status'=>'pending'],['id'=>$pp_id]);CCS::flush_push();
+push_check((int)$wpdb->get_var('SELECT COUNT(*) FROM '.PushCore::table('campaigns'))===$pp_before+1,'retry after queue acknowledgment loss deduplicates actual campaigns');
+update_user_meta($pp_user,'_ppush_disabled','1');
+push_check(!PushAudience::matches($pp_user,$pp_campaign),'provider continues to honor user opt-out');
+CCS::notify_people([$pp_user],'integration','Aviso','Conta desativada no provedor',0,0,'integration-optout');CCS::flush_push();
+push_check(get_user_meta($pp_user,'_ppush_disabled',true)==='1','integration does not override opt-out');
+delete_user_meta($pp_user,'_ppush_disabled');
+CCS::notify_people([$pp_user],'integration','Aviso','Cadastro será inativado',0,0,'integration-inactive');$pp_inactive=(int)$wpdb->insert_id;
+update_user_meta($pp_user,'ccs_inactive','1');CCS::flush_push();
+push_check($wpdb->get_var($wpdb->prepare('SELECT push_status FROM '.CCS::table('notifications').' WHERE id=%d',$pp_inactive))==='skipped','deactivated scheduling profile is not pushed');
+delete_user_meta($pp_user,'ccs_inactive');
+// Simulate a provider failure after its campaign insert. The domain mutation stays committed.
+CCS::notify_people([$pp_user],'integration','Aviso','Falha controlada',0,0,'integration-provider-failure');$pp_retry=(int)$wpdb->insert_id;
+$pp_fail=function() { throw new RuntimeException('Simulated provider failure with private details'); };
+add_action('portal_push_campaign_created',$pp_fail);
+$pp_req=new WP_REST_Request('POST','/ccshalom/v1/action');$pp_req->set_header('Content-Type','application/json');$pp_req->set_body(wp_json_encode(['action'=>'function','name'=>'Push commit preservado']));
+$pp_res=rest_get_server()->dispatch($pp_req);
+push_check($pp_res->get_status()===200 && (bool)$wpdb->get_var('SELECT id FROM '.CCS::table('functions')." WHERE name='Push commit preservado'"),'push failure cannot roll back committed scheduling changes or return a false save error');
+remove_action('portal_push_campaign_created',$pp_fail);
+$pp_row=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.CCS::table('notifications').' WHERE id=%d',$pp_retry));
+push_check($pp_row->push_status==='retry' && $pp_row->push_error==='ppush_exception' && (int)$pp_row->push_attempts===1,'failure retains bounded retry without exposing provider exception details');
+$pp_count=(int)$wpdb->get_var('SELECT COUNT(*) FROM '.PushCore::table('campaigns'));
+$wpdb->update(CCS::table('notifications'),['push_next'=>gmdate('Y-m-d H:i:s')],['id'=>$pp_retry]);CCS::flush_push();
+push_check((int)$wpdb->get_var('SELECT COUNT(*) FROM '.PushCore::table('campaigns'))===$pp_count && $wpdb->get_var($wpdb->prepare('SELECT push_status FROM '.CCS::table('notifications').' WHERE id=%d',$pp_retry))==='queued','provider retry recovers without duplicate campaign');
+CCS::notify_people([$pp_user],'integration','Aviso','Limite de tentativas',0,0,'integration-max-attempts');$pp_failed=(int)$wpdb->insert_id;
+$wpdb->update(CCS::table('notifications'),['push_attempts'=>9],['id'=>$pp_failed]);add_action('portal_push_campaign_created',$pp_fail);CCS::flush_push();remove_action('portal_push_campaign_created',$pp_fail);
+push_check($wpdb->get_var($wpdb->prepare('SELECT push_status FROM '.CCS::table('notifications').' WHERE id=%d',$pp_failed))==='failed','retries stop after ten attempts');
+PushQueue::run();
+push_check(!(int)$wpdb->get_var('SELECT COUNT(*) FROM '.PushCore::table('deliveries')),'provider queue safely completes campaigns with no device subscriptions');
+wp_set_current_user($pp_user);update_option('ppush_settings',['site_prompt'=>0]);
+CCS::push_assets();$pp_html=CCS::push_panel();
+push_check(str_contains($pp_html,'data-ppush') && str_contains($pp_html,'ccs-push-parking') && wp_script_is('portal-push','enqueued'),'persistent profile widget uses official provider script even when site-wide prompt is disabled');
+push_check(has_action('wp_footer',['PauloMaeda\\PortalPush\\Frontend','prompt'])===false,'app removes competing footer prompt');
+push_check(!str_contains(wp_json_encode(CCS::notification_feed()),'push_error'),'notification endpoint does not expose push diagnostics');
+echo "TOTAL $checks Portal Push checks\n";

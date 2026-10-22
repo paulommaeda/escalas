@@ -8,12 +8,15 @@ require_once __DIR__.'/trait-passkeys.php';
 require_once __DIR__.'/trait-management.php';
 require_once __DIR__.'/trait-import.php';
 require_once __DIR__.'/class-ccs-mail.php';
+require_once __DIR__.'/trait-events.php';
+require_once __DIR__.'/trait-notifications.php';
 final class CCS {
-    use CCS_Celebrations, CCS_Registration, CCS_Functions, CCS_Auth, CCS_Passkeys, CCS_Management, CCS_Import;
+    use CCS_Celebrations, CCS_Registration, CCS_Functions, CCS_Auth, CCS_Passkeys, CCS_Management, CCS_Import, CCS_Events, CCS_Notifications;
     public static function table($name) { global $wpdb; return $wpdb->prefix . 'ccs_' . $name; }
     public static function boot() {
         self::auth_boot();
         CCS_Mail::boot();
+        self::push_boot();
         add_action('admin_post_ccs_import_template',[__CLASS__,'import_template']);
         add_action('plugins_loaded', [__CLASS__, 'maybe_upgrade'], 5);
         add_action('rest_api_init', [__CLASS__, 'routes']);
@@ -55,7 +58,7 @@ final class CCS {
         $schemas = [
             'passkeys' => "id bigint unsigned NOT NULL AUTO_INCREMENT, user_id bigint unsigned NOT NULL, credential_hash varchar(64) NOT NULL, credential_id text NOT NULL, public_key text NOT NULL, sign_count bigint unsigned NOT NULL DEFAULT 0, label varchar(100) NOT NULL, created_at datetime NOT NULL, last_used datetime NULL, PRIMARY KEY  (id), UNIQUE KEY credential_hash (credential_hash), KEY user_id (user_id)",
             'departments' => 'active tinyint NOT NULL DEFAULT 1, id bigint unsigned NOT NULL AUTO_INCREMENT, name varchar(150) NOT NULL, leader_id bigint unsigned NOT NULL DEFAULT 0, PRIMARY KEY  (id)',
-            'teams' => "active tinyint NOT NULL DEFAULT 1, id bigint unsigned NOT NULL AUTO_INCREMENT, department_id bigint unsigned NOT NULL, name varchar(150) NOT NULL, leader_id bigint unsigned NOT NULL DEFAULT 0, PRIMARY KEY  (id), mode varchar(20) NOT NULL DEFAULT 'roster', KEY department_id (department_id)",
+            'teams' => "is_department tinyint NOT NULL DEFAULT 0, active tinyint NOT NULL DEFAULT 1, id bigint unsigned NOT NULL AUTO_INCREMENT, department_id bigint unsigned NOT NULL, name varchar(150) NOT NULL, leader_id bigint unsigned NOT NULL DEFAULT 0, PRIMARY KEY  (id), mode varchar(20) NOT NULL DEFAULT 'roster', KEY department_id (department_id)",
             'functions' => 'id bigint unsigned NOT NULL AUTO_INCREMENT, team_id bigint unsigned NOT NULL, name varchar(150) NOT NULL, quantity int unsigned NOT NULL DEFAULT 1, active tinyint NOT NULL DEFAULT 1, PRIMARY KEY  (id), KEY team_id (team_id)',
             'team_functions' => 'team_id bigint unsigned NOT NULL, function_id bigint unsigned NOT NULL, quantity int unsigned NOT NULL DEFAULT 1, PRIMARY KEY  (team_id,function_id), KEY function_id (function_id)',
             'qualifications' => 'function_id bigint unsigned NOT NULL, user_id bigint unsigned NOT NULL, PRIMARY KEY  (function_id,user_id)',
@@ -64,7 +67,8 @@ final class CCS {
             'slots' => "function_id bigint unsigned NOT NULL DEFAULT 0, function_name varchar(150) NOT NULL DEFAULT '', id bigint unsigned NOT NULL AUTO_INCREMENT, event_id bigint unsigned NOT NULL, original_id bigint unsigned NOT NULL, assigned_id bigint unsigned NOT NULL, status varchar(20) NOT NULL DEFAULT 'pending', PRIMARY KEY  (id), KEY event_id (event_id), KEY assigned_id (assigned_id)",
             'invites' => "id bigint unsigned NOT NULL AUTO_INCREMENT, slot_id bigint unsigned NOT NULL, from_id bigint unsigned NOT NULL, to_id bigint unsigned NOT NULL, status varchar(20) NOT NULL DEFAULT 'pending', created_at datetime NOT NULL, PRIMARY KEY  (id), KEY slot_id (slot_id), KEY to_id (to_id)",
             'celebrations' => "active tinyint NOT NULL DEFAULT 1, id bigint unsigned NOT NULL AUTO_INCREMENT, name varchar(150) NOT NULL, location varchar(200) NOT NULL DEFAULT '', starts_time varchar(5) NOT NULL, ends_time varchar(5) NOT NULL, arrival_minutes int unsigned NOT NULL DEFAULT 30, rules longtext NOT NULL, revision bigint unsigned NOT NULL DEFAULT 1, PRIMARY KEY  (id)",
-            'occurrences' => "id bigint unsigned NOT NULL AUTO_INCREMENT, celebration_id bigint unsigned NOT NULL, title varchar(150) NOT NULL, location varchar(200) NOT NULL DEFAULT '', arrival datetime NOT NULL, starts datetime NOT NULL, ends datetime NOT NULL, notes text NOT NULL, rules_snapshot longtext NOT NULL, status varchar(20) NOT NULL DEFAULT 'published', PRIMARY KEY  (id), KEY celebration_id (celebration_id), KEY starts (starts)",
+            'occurrences' => "created_by bigint unsigned NOT NULL DEFAULT 0, id bigint unsigned NOT NULL AUTO_INCREMENT, celebration_id bigint unsigned NOT NULL, title varchar(150) NOT NULL, location varchar(200) NOT NULL DEFAULT '', arrival datetime NOT NULL, starts datetime NOT NULL, ends datetime NOT NULL, notes text NOT NULL, rules_snapshot longtext NOT NULL, status varchar(20) NOT NULL DEFAULT 'published', PRIMARY KEY  (id), KEY celebration_id (celebration_id), KEY starts (starts)",
+            'notifications' => "id bigint unsigned NOT NULL AUTO_INCREMENT, user_id bigint unsigned NOT NULL, type varchar(50) NOT NULL, title varchar(120) NOT NULL, body text NOT NULL, url text NOT NULL, occurrence_id bigint unsigned NOT NULL DEFAULT 0, event_id bigint unsigned NOT NULL DEFAULT 0, invite_id bigint unsigned NOT NULL DEFAULT 0, dedupe_key varchar(64) NOT NULL, created_at datetime NOT NULL, read_at datetime NULL, push_status varchar(20) NOT NULL DEFAULT 'pending', push_attempts int unsigned NOT NULL DEFAULT 0, push_next datetime NOT NULL, push_error varchar(100) NOT NULL DEFAULT '', PRIMARY KEY  (id), UNIQUE KEY dedupe_key (dedupe_key), KEY user_inbox (user_id,read_at), KEY push_queue (push_status,push_next)",
             'audit' => 'id bigint unsigned NOT NULL AUTO_INCREMENT, actor_id bigint unsigned NOT NULL, event_id bigint unsigned NOT NULL DEFAULT 0, action varchar(100) NOT NULL, detail text NOT NULL, created_at datetime NOT NULL, PRIMARY KEY  (id), KEY event_id (event_id)',
         ];
         foreach ($schemas as $table => $schema) {
@@ -93,6 +97,7 @@ final class CCS {
             update_option('ccs_page_id', $id);
         }
         self::migrate_global_functions();
+        self::migrate_event_groups();
         update_option('ccs_db_version', CCS_VERSION);
     }
     public static function url() { return get_permalink((int)get_option('ccs_page_id')) ?: home_url('/escalas/'); }
@@ -124,7 +129,7 @@ final class CCS {
     public static function require_that($test, $message='Você não tem permissão para esta ação.', $status=403) { if (!$test) { self::fail($message, $status); } }
     public static function routes() {
         self::passkey_routes();
-        register_rest_route('ccshalom/v1','/notifications',['methods'=>'GET','permission_callback'=>[__CLASS__,'access'],'callback'=>[__CLASS__,'notifications']]);
+        register_rest_route('ccshalom/v1','/notifications',['methods'=>'GET','permission_callback'=>[__CLASS__,'access'],'callback'=>[__CLASS__,'notification_feed']]);
         register_rest_route('ccshalom/v1', '/state', ['methods'=>'GET', 'permission_callback'=>[__CLASS__, 'access'], 'callback'=>[__CLASS__, 'state']]);
         register_rest_route('ccshalom/v1', '/action', ['methods'=>'POST', 'permission_callback'=>[__CLASS__, 'access'], 'callback'=>[__CLASS__, 'action']]);
     }
@@ -135,31 +140,29 @@ final class CCS {
         $uid=get_current_user_id();
         $teams=[]; $dept_ids=[];
         foreach ($wpdb->get_results('SELECT * FROM '.self::table('teams').' WHERE active=1 ORDER BY name', ARRAY_A) as $t) {
-            if (!self::sees_team($t['id'])) { continue; }
+            $visible=self::sees_team($t['id']);$t['visible_to_me']=$visible;$t['is_department']=(bool)$t['is_department'];
             $t['can_functions']=self::leads_team($t['id']);
-            $t['functions']=self::team_functions($t['id']);
+            $t['functions']=$visible?self::team_functions($t['id']):[];
             $t['can_manage']=self::manages_team($t['id']);
             $t['can_publish_open']=self::can_publish_team($t['id'],'open');
-            $t['members']=array_map('intval', $wpdb->get_col($wpdb->prepare('SELECT user_id FROM '.self::table('members').' WHERE team_id=%d', $t['id'])));
+            $t['can_assume']=self::leads_team($t['id']);
+            $t['members']=$visible?array_map('intval', $wpdb->get_col($wpdb->prepare('SELECT user_id FROM '.self::table('members').' WHERE team_id=%d', $t['id']))):[];
             $teams[]=$t; $dept_ids[]=(int)$t['department_id'];
         }
-        $departments=array_values(array_filter($wpdb->get_results('SELECT * FROM '.self::table('departments').' WHERE active=1 ORDER BY name', ARRAY_A), fn($d)=>self::secretary() || self::manages_department($d['id']) || in_array((int)$d['id'], $dept_ids,true)));
+        $departments=$wpdb->get_results('SELECT * FROM '.self::table('departments').' WHERE active=1 ORDER BY name', ARRAY_A);
         foreach ($departments as &$d) { $d['can_manage']=self::manages_department($d['id']); } unset($d);
         $events=[]; $slots=[]; $invites=[];
         // Include history and future schedules. No contacts or private profile fields in the shared directory.
         foreach ($wpdb->get_results('SELECT * FROM '.self::table('events')." WHERE status<>'deleted' ORDER BY starts DESC", ARRAY_A) as $e) {
             $all=$wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('slots')." WHERE event_id=%d AND status<>'withdrawn'", $e['id']), ARRAY_A);
-            $own=false;
-            foreach ($all as $s) { if ((int)$s['assigned_id']===$uid || (int)$s['original_id']===$uid) { $own=true; } }
-            $incoming=$wpdb->get_results($wpdb->prepare('SELECT i.* FROM '.self::table('invites').' i JOIN '.self::table('slots').' s ON s.id=i.slot_id WHERE s.event_id=%d AND i.to_id=%d', $e['id'], $uid), ARRAY_A);
-            if (!self::sees_team($e['team_id']) && !$own && !$incoming) { continue; }
             $e['can_manage']=self::can_manage_event($e);
             $e['can_delegate']=$e['mode']==='functions' && self::leads_team($e['team_id']);
             $e['can_claim']=self::can_serve($uid) && in_array($e['mode'],['open','functions'],true) && self::is_member($e['team_id'],$uid);
             $team=self::team($e['team_id']); $e['team_name']=$team ? $team['name'] : 'Equipe';
+            $e['department_id']=$team?(int)$team['department_id']:0;
+            $e['department_name']=$wpdb->get_var($wpdb->prepare('SELECT name FROM '.self::table('departments').' WHERE id=%d',$e['department_id']))?:'Departamento';
             $events[]=$e;
             foreach ($all as $s) {
-                if (!self::sees_team($e['team_id']) && (int)$s['assigned_id']!==$uid && (int)$s['original_id']!==$uid && !array_filter($incoming, fn($i)=>(int)$i['slot_id']===(int)$s['id'])) { continue; }
                 $s['can_claim']=$e['can_claim'] && ($e['mode']!=='functions' || self::qualified($e['team_id'],$s['function_id'],$uid));
                 $slots[]=$s;
                 $rows=$wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('invites').' WHERE slot_id=%d ORDER BY id DESC', $s['id']), ARRAY_A);
@@ -180,11 +183,11 @@ final class CCS {
             $rows=$wpdb->get_results($wpdb->prepare('SELECT id,actor_id,event_id,action,created_at FROM '.self::table('audit').' WHERE event_id=%d ORDER BY id DESC LIMIT 50',$event['id']),ARRAY_A);
             foreach ($rows as $row) { $row['actor_name']=self::name($row['actor_id']); $row['created_at']=get_date_from_gmt($row['created_at']); $audit[]=$row; }
         }
-        return array_merge(self::celebration_state($events), ['notifications'=>self::notifications(),'functions'=>$wpdb->get_results('SELECT id,name FROM '.self::table('functions').' WHERE active=1 ORDER BY name',ARRAY_A),'can_catalog'=>self::can_catalog(),'passkeys'=>self::passkey_list(), 'passkey_available'=>self::passkey_available(), 'audit'=>$audit,'me'=>['id'=>$uid, 'name'=>self::name($uid), 'role_label'=>self::role_label(), 'pastor'=>self::pastor(),'secretary'=>self::secretary(),'can_manage'=>self::management_access(),'can_assign_functions'=>self::can_catalog(),'can_serve'=>self::can_serve($uid),'import_url'=>self::import_allowed()?self::import_url():'', 'phone'=>get_user_meta($uid,'ccs_phone',true), 'email'=>wp_get_current_user()->user_email], 'teams'=>$teams, 'departments'=>$departments, 'events'=>$events, 'slots'=>$slots, 'invites'=>$invites, 'users'=>$users, 'now'=>current_datetime()->format('Y-m-d H:i:s'), 'timezone'=>wp_timezone_string()]);
+        return array_merge(self::celebration_state($events), ['inbox'=>self::notification_feed(),'push'=>['available'=>self::push_available()],'notifications'=>self::notifications(),'functions'=>$wpdb->get_results('SELECT id,name FROM '.self::table('functions').' WHERE active=1 ORDER BY name',ARRAY_A),'can_catalog'=>self::can_catalog(),'passkeys'=>self::passkey_list(), 'passkey_available'=>self::passkey_available(), 'audit'=>$audit,'me'=>['id'=>$uid, 'name'=>self::name($uid), 'role_label'=>self::role_label(), 'pastor'=>self::pastor(),'secretary'=>self::secretary(),'can_manage'=>self::management_access(),'can_publish_event'=>self::can_publish_event(),'can_assign_functions'=>self::can_catalog(),'can_serve'=>self::can_serve($uid),'import_url'=>self::import_allowed()?self::import_url():'', 'phone'=>get_user_meta($uid,'ccs_phone',true), 'email'=>wp_get_current_user()->user_email], 'teams'=>$teams, 'departments'=>$departments, 'events'=>$events, 'slots'=>$slots, 'invites'=>$invites, 'users'=>$users, 'now'=>current_datetime()->format('Y-m-d H:i:s'), 'timezone'=>wp_timezone_string()]);
     }
     public static function insert($table, $data) { global $wpdb; if (false===$wpdb->insert(self::table($table),$data)) { self::fail('Não foi possível salvar. Tente novamente.',500); } return (int)$wpdb->insert_id; }
     public static function update($table,$data,$where) { global $wpdb; if (false===$wpdb->update(self::table($table),$data,$where)) { self::fail('Não foi possível atualizar. Tente novamente.',500); } }
-    public static function audit($action,$event=0,$detail='') { self::insert('audit',['actor_id'=>get_current_user_id(),'event_id'=>$event,'action'=>$action,'detail'=>$detail,'created_at'=>current_time('mysql',true)]); }
+    public static function audit($action,$event=0,$detail='') { return self::insert('audit',['actor_id'=>get_current_user_id(),'event_id'=>$event,'action'=>$action,'detail'=>$detail,'created_at'=>current_time('mysql',true)]); }
     public static function text($data,$key,$max=150) { $v=sanitize_text_field($data[$key]??''); self::require_that($v!=='' && mb_strlen($v)<=$max,'Preencha corretamente: '.$key.'.',400); return $v; }
     public static function ids($values) { return array_values(array_unique(array_filter(array_map('absint',(array)$values)))); }
     public static function datetime($value) {
@@ -213,6 +216,8 @@ final class CCS {
         try {
             $result=self::mutate($a);
             if ($wpdb->query('COMMIT')===false) { self::fail('Não foi possível concluir a alteração.',500); }
+            // Push campaigns are created only after the scheduling transaction commits.
+            try { self::flush_push(); } catch (Throwable $e) { /* Durable notices remain pending for the next attempt. */ }
             return is_array($result) ? array_merge(['ok'=>true],$result) : ['ok'=>true,'message'=>$result?:'Alteração salva.'];
         } catch (CCS_Exception $e) { $wpdb->query('ROLLBACK'); return new WP_Error('ccs_action',$e->getMessage(),['status'=>$e->getCode()?:400]); }
         catch (Throwable $e) { $wpdb->query('ROLLBACK'); return new WP_Error('ccs_internal','Não foi possível concluir. Consulte o administrador.',['status'=>500]); }
@@ -221,6 +226,7 @@ final class CCS {
     private static function mutate($a) {
         global $wpdb;
         $uid=get_current_user_id(); $id=absint($a['id']??0);
+        if (($a['action']??'')==='notice_read') { return self::read_notifications($a); }
         self::require_that(!self::secretary(),'O perfil Secretaria tem acesso somente para consulta.',403);
         switch ($a['action']??'') {
         case 'department':
@@ -285,20 +291,7 @@ final class CCS {
             self::audit('user',0,(string)$id);
             return 'Usuário salvo. Para o primeiro acesso, use “Perdeu a senha?” com o e-mail cadastrado.';
         case 'schedule':
-            $team_ids=self::ids($a['team_ids']??[]); self::require_that(count($team_ids)>0 && count($team_ids)<=30,'Selecione de 1 a 30 equipes.',400);
-            $title=self::text($a,'title'); $start=self::datetime($a['starts']??''); $end=self::datetime($a['ends']??''); $arrival=self::datetime($a['arrival']??'');
-            self::require_that($arrival<=$start && $end>$start && $start>current_datetime(),'Confira os horários: chegada até o início, término depois do início e celebração futura.',400);
-            $repeat=max(1,min(12,absint($a['repeat']??1))); $days=absint($a['interval']??7); self::require_that(in_array($days,[7,14,28],true),'Intervalo inválido.',400);
-            for ($n=0;$n<$repeat;$n++) {
-                $shift='+'.($n*$days).' days'; $s=$start->modify($shift)->format('Y-m-d H:i:s'); $e=$end->modify($shift)->format('Y-m-d H:i:s'); $ar=$arrival->modify($shift)->format('Y-m-d H:i:s');
-                foreach ($team_ids as $team) {
-                    $t=self::team($team); self::require_that($t,'Equipe não encontrada.',404);
-                    $mode=($a['mode']??'default')==='default' ? $t['mode'] : $a['mode'];
-                    self::require_that(self::can_publish_team($team,$mode));
-                    self::create_event($team,['title'=>$title,'location'=>sanitize_text_field($a['location']??''),'arrival'=>$ar,'starts'=>$s,'ends'=>$e,'notes'=>sanitize_textarea_field($a['notes']??'')],$mode);
-                }
-            }
-            return 'Escalas publicadas. Os integrantes já podem responder pelo painel.';
+            return self::legacy_schedule($a);
         case 'edit_schedule':
             $event=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.self::table('events').' WHERE id=%d',$id),ARRAY_A);
             self::require_that($event && self::can_manage_event($event));
@@ -309,6 +302,7 @@ final class CCS {
             $data=['title'=>self::text($a,'title'),'location'=>sanitize_text_field($a['location']??''),'notes'=>sanitize_textarea_field($a['notes']??''),'starts'=>$start->format('Y-m-d H:i:s'),'ends'=>$end->format('Y-m-d H:i:s'),'arrival'=>$arrival->format('Y-m-d H:i:s')];
             $changed=$data['starts']!==$event['starts'] || $data['ends']!==$event['ends'] || $data['arrival']!==$event['arrival'];
             self::require_that(!$changed || !(int)$event['occurrence_id'],'Altere os horários em Editar esta data, na celebração, para atualizar todas as equipes juntas.',409);
+            if ((int)$event['occurrence_id']) { self::require_that($data['title']===$event['title'] && $data['location']===$event['location'],'O nome e local pertencem ao evento. Edite apenas as orientações da sua equipe.',403); }
             if ($changed) {
                 $slots=$wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('slots')." WHERE event_id=%d AND status<>'withdrawn'",$id),ARRAY_A);
                 foreach ($slots as $slot) {
@@ -324,31 +318,35 @@ final class CCS {
                 }
             }
             self::update('events',$data,['id'=>$id]);
-            self::audit('schedule_edited',$id,wp_json_encode(['before'=>$event,'after'=>$data,'reset'=>$changed]));
+            $audit=self::audit('schedule_edited',$id,wp_json_encode(['before'=>$event,'after'=>$data,'reset'=>$changed]));
+            self::notify_people(self::team_recipients($event['team_id']),'team_updated','Orientações da sua equipe atualizadas',$event['title'].'. Confira as orientações de '.self::team($event['team_id'])['name'].'.',$event['occurrence_id'],$id,'team-edit:'.$audit);
             if ($changed && in_array($event['mode'],['open','functions'],true)) { return 'Horários alterados. A vaga foi reaberta para uma nova escolha.'; }
             return $changed?'Horários alterados. Os integrantes originais precisam confirmar novamente; substituições anteriores não valem para o novo horário.':'Escala atualizada.';
         case 'cancel':
             $e=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.self::table('events').' WHERE id=%d',$id),ARRAY_A);
             self::require_that($e && self::can_manage_event($e));
             self::require_that($e['status']!=='deleted','Esta escala já foi excluída.',409);
-            self::update('events',['status'=>'cancelled'],['id'=>$id]);
-            $wpdb->query($wpdb->prepare('UPDATE '.self::table('invites').' i JOIN '.self::table('slots')." s ON s.id=i.slot_id SET i.status='cancelled' WHERE s.event_id=%d AND i.status='pending'",$id));
-            self::audit('schedule_cancelled',$id); break;
+            self::require_that($e['status']==='published' && $e['starts']>current_time('mysql'),'Esta participação não pode mais ser cancelada.',409);
+            self::cancel_event($id); break;
         case 'respond':
             $s=self::slot($id); self::require_that((int)$s['assigned_id']===$uid);
             $status=$a['status']??''; self::require_that(in_array($status,['confirmed','declined'],true),'Resposta inválida.',400);
             if ($status==='confirmed') { self::require_that(!self::conflict($uid,$s['arrival'],$s['ends'],$id),'Você já tem outra escala neste horário.',409); }
             self::update('slots',['status'=>$status],['id'=>$id]);
             self::update('invites',['status'=>'cancelled'],['slot_id'=>$id,'status'=>'pending']);
-            self::audit('response_'.$status,$s['event_id'],'slot='.$id); break;
+            $audit=self::audit('response_'.$status,$s['event_id'],'slot='.$id);
+            if ($status==='declined') { self::notify_people(self::team_recipients($s['team_id'],false),'participation_declined','Participação aguardando substituto',self::name($uid).' não poderá participar de '.self::event_title($s['event_id']).'.',$s['occurrence_id'],$s['event_id'],'decline:'.$audit); }
+            break;
         case 'invite':
             $s=self::slot($id); self::require_that((int)$s['assigned_id']===$uid && $s['status']==='declined');
             $to=absint($a['to_id']??0); self::require_that($to!==$uid && self::can_serve($to),'Selecione outro voluntário ativo.',400);
             if ((int)$s['function_id']) { self::require_that(self::has_function($s['function_id'],$to),'Escolha um voluntário da mesma função.',400); }
             self::require_that(!self::conflict($to,$s['arrival'],$s['ends']),'Este voluntário já está escalado nesse horário.',409);
             self::update('invites',['status'=>'cancelled'],['slot_id'=>$id,'status'=>'pending']);
-            self::insert('invites',['slot_id'=>$id,'from_id'=>$uid,'to_id'=>$to,'status'=>'pending','created_at'=>current_time('mysql',true)]);
-            self::audit('replacement_invited',$s['event_id'],'slot='.$id.';to='.$to); return 'Convite registrado. A troca depende do aceite do convidado no painel.';
+            $invite=self::insert('invites',['slot_id'=>$id,'from_id'=>$uid,'to_id'=>$to,'status'=>'pending','created_at'=>current_time('mysql',true)]);
+            self::audit('replacement_invited',$s['event_id'],'slot='.$id.';to='.$to);
+            self::notify_people([$to],'replacement_requested','Pedido de troca de escala',self::name($uid).' convidou você para '.($s['function_name']?:'servir').' em '.self::event_title($s['event_id']).'. Abra o evento para aceitar ou recusar.',$s['occurrence_id'],$s['event_id'],'invite:'.$invite,$invite);
+            return 'Convite registrado. A troca depende do aceite do convidado no painel.';
         case 'answer_invite':
             $i=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.self::table('invites').' WHERE id=%d',$id),ARRAY_A);
             self::require_that($i && (int)$i['to_id']===$uid); self::require_that($i['status']==='pending','Este convite já foi respondido ou cancelado.',409);
@@ -361,7 +359,8 @@ final class CCS {
                 self::update('slots',['assigned_id'=>$uid,'status'=>'confirmed'],['id'=>$s['id']]);
             }
             self::update('invites',['status'=>$accept?'accepted':'declined'],['id'=>$id]);
-            self::audit($accept?'replacement_accepted':'replacement_declined',$s['event_id'],'invite='.$id);
+            $audit=self::audit($accept?'replacement_accepted':'replacement_declined',$s['event_id'],'invite='.$id);
+            self::notify_people(array_merge([(int)$i['from_id']],self::team_recipients($s['team_id'],false)),$accept?'replacement_accepted':'replacement_declined',$accept?'Troca de escala confirmada':'Pedido de troca recusado',self::name($uid).($accept?' aceitou':' recusou').' a substituição em '.self::event_title($s['event_id']).'.',$s['occurrence_id'],$s['event_id'],'answer:'.$audit,$id);
             return $accept?'Substituição confirmada. Esta escala agora está com você.':'Convite recusado. A vaga continua aguardando substituto.';
         default: return self::management_action($a);
         }
@@ -394,7 +393,9 @@ final class CCS {
         wp_enqueue_style('ccs-app',plugins_url('assets/app.css',CCS_FILE),[],CCS_VERSION);
         self::auth_assets();
         if (is_user_logged_in() && self::participant(get_current_user_id())) {
-            wp_enqueue_script('ccs-app',plugins_url('assets/app.js',CCS_FILE),['ccs-auth'],CCS_VERSION,true);
+            self::push_assets();
+            wp_enqueue_script('ccs-event-views',plugins_url('assets/event-views.js',CCS_FILE),[],CCS_VERSION,true);
+            wp_enqueue_script('ccs-app',plugins_url('assets/app.js',CCS_FILE),['ccs-auth','ccs-event-views'],CCS_VERSION,true);
             wp_localize_script('ccs-app','CCS_CONFIG',['api'=>rest_url('ccshalom/v1/'),'nonce'=>wp_create_nonce('wp_rest'),'login'=>self::auth_url(), 'logout'=>self::logout_url(),'lost'=>self::auth_url('forgot')]);
         }
     }
@@ -421,7 +422,7 @@ final class CCS {
             return $html.'<main class="ccs-main"><section class="ccs-card ccs-welcome"><span class="ccs-eyebrow">BEM-VINDO À EQUIPE</span><h1>Servimos melhor<br>quando estamos juntos.</h1><p>Acesse suas escalas e confirme sua participação nas próximas celebrações.</p><a class="ccs-button" href="'.esc_url(wp_login_url(self::url())).'">Entrar na minha conta</a></section></main></div>';
         }
         if (!self::participant(get_current_user_id())) { return $html.'<main class="ccs-main"><section class="ccs-card"><h1>Acesso às escalas</h1><p>Peça à liderança para ativar seu cadastro e vincular seu usuário à equipe.</p><a href="'.esc_url(self::logout_url()).'">Sair</a></section></main></div>'; }
-        return $html.'<div id="ccs-message" role="status" aria-live="polite"></div><main class="ccs-main" id="ccs-content"><p class="ccs-card">Carregando suas escalas…</p></main><nav class="ccs-nav" aria-label="Navegação principal"></nav><dialog id="ccs-dialog" aria-labelledby="ccs-dialog-title"></dialog><noscript>Ative o JavaScript para usar o painel de escalas.</noscript></div>';
+        return $html.'<div id="ccs-message" role="status" aria-live="polite"></div><main class="ccs-main" id="ccs-content"><p class="ccs-card">Carregando suas escalas…</p></main><nav class="ccs-nav" aria-label="Navegação principal"></nav><dialog id="ccs-dialog" aria-labelledby="ccs-dialog-title"></dialog><noscript>Ative o JavaScript para usar o painel de escalas.</noscript></div>'.self::push_panel();
     }
     public static function login_style() {
         if (get_option('ccs_login','1')!=='1') { return; }
