@@ -2,7 +2,7 @@
 Contributors: ccshalom
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 0.11.0
+Stable tag: 0.11.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,10 @@ Cadastro de voluntários, celebrações, equipes e vagas por função.
 Guia completo: docs/GUIA-DE-INSTALACAO.md.
 
 == Changelog ==
+= 0.11.1 =
+Aviso de atualização de equipes reflete a seleção final, sem sinalizar uma pendência temporária já resolvida.
+Mantém confirmações das equipes preservadas e os avisos individuais de cancelamento das equipes retiradas.
+
 = 0.11.0 =
 Evento único por data com todos os departamentos, equipes e designações.
 Publicação por departamentos; líderes assumem datas seguindo o modo de convocação da equipe.

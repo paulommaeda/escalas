@@ -1,5 +1,6 @@
-## CCShalom Escalas 0.11.0
+## CCShalom Escalas 0.11.1
 
+- Ajusta o aviso de troca de equipes para refletir a seleção final, sem indicar uma pendência temporária já resolvida.
 - Publicação de um evento com data, horários, departamentos necessários e quantidade de equipes.
 - Líderes assumem a participação da própria equipe; a convocação usa seu formato: equipe inteira, vaga aberta ou vagas por função.
 - Início e Minhas escalas mostram um evento por data, com programação completa e designações de todos os departamentos.

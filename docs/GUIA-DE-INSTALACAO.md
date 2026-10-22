@@ -1,4 +1,4 @@
-# CCShalom Escalas — 0.11.0
+# CCShalom Escalas — 0.11.1
 
 ## Atualização
 
