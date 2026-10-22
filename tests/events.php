@@ -163,3 +163,8 @@ wp_set_current_user($admin);CCS::notify_people([$ev_out],'test_notice','Aviso','
 CCS::notify_people([$v],'test_notice','Aviso','Outra pessoa',0,0,'all-read-foreign');$ev_allForeign=latest('notifications');
 act($ev_out,['action'=>'notice_read','all'=>true]);
 check((bool)$wpdb->get_var($wpdb->prepare('SELECT read_at FROM '.CCS::table('notifications').' WHERE id=%d',$ev_allOwn)) && !$wpdb->get_var($wpdb->prepare('SELECT read_at FROM '.CCS::table('notifications').' WHERE id=%d',$ev_allForeign)),'mark all read updates only current user notices');
+
+act($ev_leadA,['action'=>'claim_event_team','id'=>$ev_own,'team_id'=>$ev_teamA]);
+wp_set_current_user($d);$ev_ownState=array_values(array_filter(CCS::state()['occurrences'],fn($o)=>(int)$o['id']===(int)$ev_own))[0];
+act($d,['action'=>'assign_occurrence','id'=>$ev_own,'department_id'=>$ev_depA,'team_ids'=>[$ev_teamB],'fingerprint'=>$ev_ownState['requirements'][0]['fingerprint']]);
+check(!(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM '.CCS::table('notifications')." WHERE occurrence_id=%d AND type='department_pending'",$ev_own)),'replacing a team without leaving vacancies does not issue a false department-pending notice');

@@ -51,7 +51,7 @@ trait CCS_Celebrations {
             $t=self::team($id); self::require_that($t && !empty($t['active']) && (int)$t['department_id']===(int)$department,'Uma equipe selecionada não pertence ao departamento.',400);
         }
     }
-    private static function cancel_event($id,$notify=true) {
+    private static function cancel_event($id,$notify=true,$department_notice=true) {
         global $wpdb;
         $event=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.self::table('events').' WHERE id=%d',$id),ARRAY_A);
         if (!$event || $event['status']!=='published') { return; }
@@ -62,8 +62,10 @@ trait CCS_Celebrations {
         if ($notify) {
             $ids=array_merge(self::team_recipients($event['team_id']),$wpdb->get_col($wpdb->prepare('SELECT assigned_id FROM '.self::table('slots').' WHERE event_id=%d',$id)));
             self::notify_people($ids,'team_cancelled','Participação da equipe cancelada',$event['title'].'. Confira o evento para acompanhar as outras participações.',$event['occurrence_id'],$id,'cancel:'.$audit);
-            $team=self::team($event['team_id']);
-            self::notify_department($team['department_id'],'department_pending','Departamento com participação pendente',$team['name'].' liberou a participação em '.$event['title'].'.',$event['occurrence_id'],$id,'pending:'.$audit);
+            if ($department_notice) {
+                $team=self::team($event['team_id']);
+                self::notify_department($team['department_id'],'department_pending','Departamento com participação pendente',$team['name'].' liberou a participação em '.$event['title'].'.',$event['occurrence_id'],$id,'pending:'.$audit);
+            }
         }
     }
     public static function celebration_state($visible_events) {
@@ -196,12 +198,13 @@ trait CCS_Celebrations {
             self::require_that(is_string($a['fingerprint']??null) && hash_equals($fingerprint,$a['fingerprint']),'A escala foi alterada. Atualize antes de trocar as equipes.',409);
             $current=array_map(fn($ev)=>(int)$ev['team_id'],$events); sort($current);$chosen=$ids;sort($chosen);
             if ($current===$chosen) { return 'As equipes desta data já estão definidas dessa forma.'; }
-            foreach ($events as $event) { if (!in_array((int)$event['team_id'],$ids,true)) { self::cancel_event($event['id']); } }
+            foreach ($events as $event) { if (!in_array((int)$event['team_id'],$ids,true)) { self::cancel_event($event['id'],true,false); } }
             $data=array_intersect_key($o,array_flip(['title','location','arrival','starts','ends','notes']));
             foreach (array_diff($ids,$current) as $team) { self::create_event($team,$data,self::team($team)['mode'],$id); }
             foreach ($o['rules_snapshot'] as &$r) { if ((int)$r['department_id']===$dep) { $r['selected_team_ids']=$ids; } }unset($r);
             self::update('occurrences',['rules_snapshot'=>wp_json_encode($o['rules_snapshot'])],['id'=>$id]);
-            self::audit('occurrence_teams_changed',0,'occurrence='.$id.';department='.$dep);
+            $audit=self::audit('occurrence_teams_changed',0,'occurrence='.$id.';department='.$dep);
+            self::notify_department($dep,'teams_changed','Participação do departamento atualizada','As equipes de '.$o['title'].' foram atualizadas. Confira a programação do evento.',$id,0,'teams:'.$audit);
             return 'Equipes desta data atualizadas. As participações mantidas preservam suas confirmações e convites.';
         case 'cancel_occurrence':
             $o=self::occurrence($id);self::require_that(self::can_manage_occurrence($o));
