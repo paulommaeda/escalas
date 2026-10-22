@@ -9,27 +9,34 @@ trait CCS_Import {
     public static function import_fields() {
         return ['name'=>['Nome',true], 'email'=>['E-mail',true], 'birth_date'=>['Data de nascimento',true], 'phone'=>['Telefone',false], 'role'=>['Perfil',false]];
     }
-    public static function import_source($raw) {
+    public static function import_source($raw,$has_header=false) {
         self::require_that(is_string($raw) && strlen($raw)<=2*1024*1024,'O arquivo deve ter até 2 MB.',400);
         $raw=preg_replace('/^\xEF\xBB\xBF/','',$raw);
         self::require_that($raw!=='' && !str_contains($raw,"\0") && preg_match('//u',$raw),'Salve o arquivo como CSV UTF-8.',400);
         $stream=fopen('php://temp','r+');fwrite($stream,$raw);rewind($stream);
         try {
-            $first=fgets($stream);rewind($stream);
-            $delimiter=count(str_getcsv($first,';','"',''))>count(str_getcsv($first,',','"',''))?';':',';
-            $header=fgetcsv($stream,0,$delimiter,'"','');
-            self::require_that(is_array($header) && count($header)>=3 && count($header)<=100,'Inclua uma linha de cabeçalho e entre 3 e 100 colunas.',400);
-            $header=array_map(fn($v)=>mb_substr(sanitize_text_field(trim((string)$v)),0,150),$header);
-            $records=[];$line=1;
+            $delimiter=',';$most_columns=0;
+            foreach ([',',';'] as $candidate) {
+                rewind($stream);
+                while (($probe=fgetcsv($stream,0,$candidate,'"',''))!==false) {
+                    if (array_filter($probe,fn($v)=>trim((string)$v)!=='')) { break; }
+                }
+                if (is_array($probe) && count($probe)>$most_columns) { $most_columns=count($probe);$delimiter=$candidate; }
+            }
+            rewind($stream);$header=null;$records=[];$line=0;
             while (($values=fgetcsv($stream,0,$delimiter,'"',''))!==false) {
                 $line++;
                 $values=array_map(fn($v)=>trim((string)$v),$values);
                 if (!array_filter($values,fn($v)=>$v!=='')) { continue; }
-                self::require_that(count($records)<200,'Importe no máximo 200 pessoas por arquivo.',400);
+                if ($header===null) {
+                    self::require_that(count($values)>=3 && count($values)<=100,'O arquivo deve ter entre 3 e 100 colunas para o mapeamento.',400);
+                    $header=$has_header?array_map(fn($v)=>mb_substr(sanitize_text_field($v),0,150),$values):array_fill(0,count($values),'');
+                    if ($has_header) { continue; }
+                }
                 $records[]=['line'=>$line,'values'=>$values];
             }
             self::require_that(count($records)>0,'O arquivo não contém pessoas.',400);
-            return ['header'=>$header,'records'=>$records];
+            return ['header'=>$header,'records'=>$records,'has_header'=>(bool)$has_header];
         } finally { fclose($stream); }
     }
     public static function import_auto_mapping($header) {
@@ -81,7 +88,7 @@ trait CCS_Import {
         $rows=[];$seen=[];
         foreach ($source['records'] as $record) {
             $row=['line'=>$record['line'],'name'=>'','email'=>'','birth_date'=>'','phone'=>'','role'=>'','status'=>'invalid','message'=>''];
-            if (count($record['values'])!==count($source['header'])) { $row['message']='Quantidade de colunas diferente do cabeçalho.';$rows[]=$row;continue; }
+            if (count($record['values'])!==count($source['header'])) { $row['message']='Quantidade de colunas diferente das demais linhas do arquivo.';$rows[]=$row;continue; }
             $data=[];foreach ($mapping as $field=>$index) { $data[$field]=$index===''?'':$record['values'][$index]; }
             $row['name']=sanitize_text_field($data['name']);
             $row['email']=strtolower($data['email']);
@@ -102,8 +109,8 @@ trait CCS_Import {
         }
         return $rows;
     }
-    public static function import_csv($raw,$mapping=null) {
-        $source=self::import_source($raw);
+    public static function import_csv($raw,$mapping=null,$has_header=false) {
+        $source=self::import_source($raw,$has_header);
         return self::import_rows($source,$mapping??self::import_auto_mapping($source['header']));
     }
     private static function import_key() { return 'ccs_import_'.get_current_user_id(); }
@@ -118,14 +125,14 @@ trait CCS_Import {
         self::require_that(is_array($batch) && ($batch['version']??0)===2 && is_string($token) && isset($batch['token']) && hash_equals($batch['token'],$token),'A prévia expirou ou foi substituída. Envie o CSV novamente.',409);
         return $batch;
     }
-    public static function import_prepare($raw) {
+    public static function import_prepare($raw,$has_header=false) {
         self::require_that(self::import_allowed(),'Sem permissão.',403);
-        $source=self::import_source($raw);
+        $source=self::import_source($raw,$has_header);
         return self::import_store(['version'=>2,'token'=>wp_generate_password(32,false,false),'source'=>$source,'mapping'=>self::import_auto_mapping($source['header']),'stage'=>'mapping','rows'=>[],'done'=>false]);
     }
     public static function import_map($token,$mapping) {
         $batch=self::import_read($token);
-        self::require_that(!$batch['done'] && isset($batch['source']),'Envie o arquivo novamente para iniciar outra importação.',409);
+        self::require_that(!$batch['done'] && empty($batch['started']) && isset($batch['source']),'A importação já começou. Envie o arquivo novamente para iniciar outra importação.',409);
         $batch['mapping']=self::import_validate_mapping($mapping,count($batch['source']['header']));
         $batch['rows']=self::import_rows($batch['source'],$batch['mapping']);$batch['stage']='preview';
         $batch['token']=wp_generate_password(32,false,false);
@@ -140,8 +147,13 @@ trait CCS_Import {
             self::require_that($batch['stage']==='preview','Mapeie as colunas e confira a prévia antes de importar.',409);
             self::require_that($confirmed,'Confirme os cadastros antes de continuar.',400);
             if ($batch['done']) { return $batch; }
+            $batch['started']=true;unset($batch['source']);
+            self::import_store($batch);
+            $processed=0;$deadline=microtime(true)+8;
             foreach ($batch['rows'] as &$row) {
                 if ($row['status']!=='ready') { continue; }
+                if ($processed>=50 || microtime(true)>=$deadline) { break; }
+                $processed++;
                 if (email_exists($row['email'])) { $row['status']='skipped';$row['message']='E-mail já cadastrado; nenhuma alteração.';continue; }
                 // Revalidate before creating an account, including the permitted access profiles.
                 $birth=self::import_birth_date($row['birth_date']);
@@ -154,7 +166,7 @@ trait CCS_Import {
                 // Audit only the target ID. Passwords and CSV contents are never logged.
                 self::audit('user_imported',0,(string)$id);
             } unset($row);
-            $batch['done']=true;unset($batch['source']);
+            $batch['done']=!in_array('ready',array_column($batch['rows'],'status'),true);
             return self::import_store($batch);
         } finally { $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)',$lock)); }
     }
@@ -170,12 +182,16 @@ trait CCS_Import {
         echo '<input type="hidden" name="import_action" value="map"><input type="hidden" name="token" value="'.esc_attr($batch['token']).'"><div class="ccs-import-mapping">';
         foreach (self::import_fields() as $field=>[$label,$required]) {
             echo '<label for="ccs-map-'.esc_attr($field).'">'.esc_html($label.($required?' *':'')).'<select id="ccs-map-'.esc_attr($field).'" name="mapping['.esc_attr($field).']"'.($required?' required':'').'><option value="">'.($required?'Selecione uma coluna':'Não importar este campo').'</option>';
-            foreach ($header as $index=>$title) { echo '<option value="'.esc_attr($index).'"'.selected((string)$batch['mapping'][$field],(string)$index,false).'>'.esc_html(($index+1).' — '.($title?:'Sem título')).'</option>'; }
+            foreach ($header as $index=>$title) {
+                $sample=mb_substr(sanitize_text_field($batch['source']['records'][0]['values'][$index]??''),0,60);
+                $label='Coluna '.($index+1).($title?' — '.$title:'').($sample?' ('.$sample.')':'');
+                echo '<option value="'.esc_attr($index).'"'.selected((string)$batch['mapping'][$field],(string)$index,false).'>'.esc_html($label).'</option>';
+            }
             echo '</select></label>';
         }
         echo '</div><p>Sem coluna de perfil, todas as novas pessoas serão <strong>Voluntário</strong>. A data de nascimento define a senha inicial em <strong>ddmmaaaa</strong>.</p>';
         submit_button('Validar mapeamento e visualizar');echo '</form><details><summary>Conferir as primeiras linhas do arquivo</summary><div class="ccs-import-scroll"><table class="widefat striped"><thead><tr>';
-        foreach ($header as $index=>$title) { echo '<th>'.esc_html(($index+1).' — '.($title?:'Sem título')).'</th>'; }
+        foreach ($header as $index=>$title) { echo '<th>'.esc_html('Coluna '.($index+1).($title?' — '.$title:'')).'</th>'; }
         echo '</tr></thead><tbody>';
         foreach (array_slice($batch['source']['records'],0,3) as $record) {
             echo '<tr>';foreach (array_keys($header) as $index) { echo '<td>'.esc_html(mb_substr($record['values'][$index]??'',0,100)).'</td>'; }echo '</tr>';
@@ -196,12 +212,12 @@ trait CCS_Import {
                     self::require_that(strtolower(pathinfo($file['name'],PATHINFO_EXTENSION))==='csv','Envie um arquivo .csv, exportado em UTF-8.',400);
                     self::require_that((int)$file['size']<=2*1024*1024,'Limite de 2 MB por arquivo.',400);
                     $raw=file_get_contents($file['tmp_name']);self::require_that(is_string($raw),'Não foi possível ler o arquivo.',400);
-                    self::import_prepare($raw);
+                    self::import_prepare($raw,isset($_POST['has_header']));
                 } elseif ($action==='map') {
                     self::import_map(wp_unslash($_POST['token']??''),wp_unslash($_POST['mapping']??[]));
                 } elseif ($action==='commit') {
-                    self::import_commit(wp_unslash($_POST['token']??''),isset($_POST['confirm']));
-                    $notice='Importação concluída. Confira os resultados por linha.';
+                    $result=self::import_commit(wp_unslash($_POST['token']??''),isset($_POST['confirm']));
+                    $notice=$result['done']?'Importação concluída. Confira os resultados por linha.':'Importação em andamento. Mantenha esta página aberta para continuar automaticamente.';
                 } elseif ($action==='clear') { delete_transient($key); }
             } catch (CCS_Exception $e) { $error=$e->getMessage(); }
             catch (Throwable $e) { $error='Não foi possível concluir a importação. Consulte os resultados e envie novamente o CSV para retomar; e-mails existentes serão ignorados.';
@@ -210,7 +226,7 @@ trait CCS_Import {
         $batch=get_transient($key);
         // Previews from releases before column mapping must never create accounts with the old rules.
         if (is_array($batch) && ($batch['version']??0)!==2) { delete_transient($key);$batch=false;$notice='Envie novamente o CSV para mapear os campos e incluir a data de nascimento.'; }
-        echo '<div class="wrap ccs-import"><h1>Importar pessoas</h1><p>Envie um CSV UTF-8, exportado pelo Excel ou Google Planilhas. Limites: 200 pessoas e 2 MB. Aceita vírgula ou ponto e vírgula.</p>';
+        echo '<div class="wrap ccs-import"><h1>Importar pessoas</h1><p>Envie um CSV UTF-8, com ou sem cabeçalho, exportado pelo Excel ou Google Planilhas. Sem limite de pessoas por arquivo. Tamanho máximo: 2 MB. Aceita vírgula ou ponto e vírgula.</p>';
         echo '<style>.ccs-import{max-width:1100px}.ccs-import-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin-top:16px}.ccs-import-mapping{display:grid;gap:16px}.ccs-import-mapping label{font-weight:600;display:grid;gap:6px}.ccs-import-mapping select{width:100%;max-width:100%;min-height:40px;font-weight:400}.ccs-import-scroll{max-width:100%;overflow-x:auto;margin-top:12px}.ccs-import input[type=file]{max-width:100%;margin:8px 0}.ccs-import details{margin-top:12px}.ccs-import summary{cursor:pointer}.ccs-import .submit{margin-bottom:0}.ccs-import td,.ccs-import th{overflow-wrap:anywhere;min-width:100px}@media(min-width:600px){.ccs-import-mapping{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>';
         echo '<p><a class="button" href="'.esc_url(wp_nonce_url(admin_url('admin-post.php?action=ccs_import_template'),'ccs_import_template')).'">Baixar modelo CSV</a></p>';
         echo '<p>Nome, e-mail e data de nascimento são obrigatórios para novas pessoas. Telefone e perfil são opcionais. Datas: <code>dd/mm/aaaa</code>, <code>aaaa-mm-dd</code> ou <code>ddmmaaaa</code>. Exemplo: <code>07/03/1990</code> gera a senha inicial <code>07031990</code>.</p>';
@@ -218,24 +234,36 @@ trait CCS_Import {
         if ($error) { echo '<div class="notice notice-error"><p>'.esc_html($error).'</p></div>'; }
         if ($notice) { echo '<div class="notice notice-success"><p>'.esc_html($notice).'</p></div>'; }
         echo '<section class="ccs-import-card"><h2>1. Enviar arquivo</h2><form method="post" enctype="multipart/form-data" action="'.esc_url(self::import_url()).'">';wp_nonce_field('ccs_import_users');
-        echo '<input type="hidden" name="import_action" value="upload"><label for="ccs-import-csv">Arquivo CSV com cabeçalho</label><br><input id="ccs-import-csv" type="file" name="csv" accept=".csv,text/csv" required>';
+        echo '<input type="hidden" name="import_action" value="upload"><label for="ccs-import-csv">Arquivo CSV</label><br><input id="ccs-import-csv" type="file" name="csv" accept=".csv,text/csv" required><p><label><input type="checkbox" name="has_header" value="1"> A primeira linha contém títulos de colunas (cabeçalho)</label><br>Deixe desmarcado quando a primeira linha já for uma pessoa. Você vai mapear as colunas pela posição e pelos exemplos.</p>';
         submit_button('Enviar e mapear campos');echo '</form></section>';
         if (is_array($batch)) {
             if (!$batch['done'] && isset($batch['source'])) { self::import_mapping_form($batch); }
             if ($batch['stage']==='preview') {
                 $counts=array_count_values(array_column($batch['rows'],'status'));$ready=$counts['ready']??0;
-                echo '<section class="ccs-import-card"><h2>'.($batch['done']?'Resultado':'3. Conferir prévia').'</h2><p>'.esc_html(sprintf('Prontos: %d · Criados: %d · Ignorados: %d · Inválidos/falhas: %d',$ready,$counts['created']??0,$counts['skipped']??0,($counts['invalid']??0)+($counts['failed']??0))).'</p>';
+                $running=!$batch['done'] && !empty($batch['started']);
+                echo '<section class="ccs-import-card"><h2>'.($batch['done']?'Resultado':($running?'Importando pessoas':'3. Conferir prévia')).'</h2><p role="status">'.esc_html(sprintf('Prontos: %d · Criados: %d · Ignorados: %d · Inválidos/falhas: %d',$ready,$counts['created']??0,$counts['skipped']??0,($counts['invalid']??0)+($counts['failed']??0))).'</p>';
+                $total=count($batch['rows']);$pages=max(1,(int)ceil($total/100));$page=min($pages,max(1,absint($_GET['import_page']??1)));
+                if ($running) { echo '<p><progress max="'.esc_attr($total).'" value="'.esc_attr($total-$ready).'" aria-label="Progresso da importação"></progress> '.esc_html(($total-$ready).' de '.$total.' registros processados.').'</p>'; }
                 echo '<div class="ccs-import-scroll"><table class="widefat striped"><thead><tr><th>Registro</th><th>Nome</th><th>E-mail</th><th>Nascimento</th><th>Telefone</th><th>Perfil</th><th>Resultado</th></tr></thead><tbody>';
-                foreach ($batch['rows'] as $row) {
+                foreach (array_slice($batch['rows'],($page-1)*100,100) as $row) {
                     echo '<tr>';foreach (['line','name','email','birth_date','phone','role','message'] as $field) {
                         $value=$row[$field];if ($field==='birth_date' && $value) { $value=substr($value,8,2).'/'.substr($value,5,2).'/'.substr($value,0,4); }
                         echo '<td>'.esc_html($value).'</td>';
                     }echo '</tr>';
                 }echo '</tbody></table></div>';
+                if ($pages>1) {
+                    echo '<nav aria-label="Páginas da importação"><p>'.esc_html('Página '.$page.' de '.$pages.' · '.$total.' registros').'</p>';
+                    if ($page>1) { echo '<a class="button" href="'.esc_url(add_query_arg('import_page',$page-1,self::import_url())).'">Anterior</a> '; }
+                    if ($page<$pages) { echo '<a class="button" href="'.esc_url(add_query_arg('import_page',$page+1,self::import_url())).'">Próxima</a>'; }
+                    echo '</nav>';
+                }
                 if (!$batch['done'] && $ready) {
-                    echo '<form method="post" action="'.esc_url(self::import_url()).'">';wp_nonce_field('ccs_import_users');
-                    echo '<input type="hidden" name="import_action" value="commit"><input type="hidden" name="token" value="'.esc_attr($batch['token']).'"><p><label><input type="checkbox" name="confirm" required> Confirmo a criação das pessoas prontas, com os perfis indicados e senha inicial pela data de nascimento (ddmmaaaa). Linhas inválidas e duplicadas serão ignoradas.</label></p>';
-                    submit_button('Importar '.$ready.' pessoas');echo '</form>';
+                    echo '<form id="ccs-import-continue" method="post" action="'.esc_url(self::import_url()).'">';wp_nonce_field('ccs_import_users');
+                    echo '<input type="hidden" name="import_action" value="commit"><input type="hidden" name="token" value="'.esc_attr($batch['token']).'">';
+                    if ($running) { echo '<input type="hidden" name="confirm" value="1"><p>Os cadastros são salvos durante a importação. Se você sair da página, volte e clique em Continuar importação para retomar.</p>'; }
+                    else { echo '<p><label><input type="checkbox" name="confirm" required> Confirmo a criação das pessoas prontas, com os perfis indicados e senha inicial pela data de nascimento (ddmmaaaa). Linhas inválidas e duplicadas serão ignoradas.</label></p>'; }
+                    submit_button($running?'Continuar importação':'Importar '.$ready.' pessoas');echo '</form>';
+                    if ($running && !$error && (($_POST['import_action']??'')==='commit')) { echo '<script>window.setTimeout(function(){document.getElementById("ccs-import-continue").requestSubmit();},300);</script>'; }
                 }
                 echo '</section>';
             }

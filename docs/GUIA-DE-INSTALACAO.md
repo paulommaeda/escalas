@@ -1,4 +1,4 @@
-# CCShalom Escalas — 0.10.0
+# CCShalom Escalas — 0.10.1
 
 ## Atualização
 
@@ -176,16 +176,16 @@ Para cadastrar Secretaria, o administrador/pastor escolhe **Secretaria (consulta
 A Gestão aparece para o perfil Líder de departamento mesmo antes de haver um departamento vinculado. O gerenciamento de equipes e escalas continua restrito aos departamentos sob sua liderança. Líderes de equipe acessam as ferramentas da própria equipe em **Equipes** e nos detalhes das escalas, sem a aba Gestão. A função de liderança exige o perfil correspondente, além do vínculo de líder no cadastro.
 
 
-## Importar pessoas — versão 0.10.0
+## Importar pessoas — versão 0.10.1
 
 Apenas administradores do WordPress podem importar. Pastor, líder de departamento, líder de equipe, voluntário e Secretaria não recebem esta permissão pelo perfil de escalas.
 
 1. No WordPress, abra **Escalas → Importar pessoas**, ou use **Gestão → Importar pessoas** no aplicativo.
-2. Use sua planilha com cabeçalho ou clique em **Baixar modelo CSV**. Substitua a pessoa de exemplo pelos seus dados.
+2. Use sua planilha com ou sem cabeçalho, ou clique em **Baixar modelo CSV**. Substitua a pessoa de exemplo pelos seus dados.
 3. Salve como **CSV UTF-8**, com vírgula ou ponto e vírgula. Campos entre aspas são aceitos. XLSX não é aceito diretamente: exporte a planilha como CSV UTF-8.
-4. Clique em **Enviar e mapear campos**. Selecione a coluna de nome, e-mail e data de nascimento; telefone e perfil são opcionais. Os títulos e a ordem das colunas podem variar. As colunas não selecionadas serão ignoradas. O sistema sugere títulos comuns, como Nome Completo, E-mail, Data de Nascimento e Celular; revise as sugestões.
+4. Deixe **A primeira linha contém títulos de colunas** desmarcado quando o arquivo começar diretamente por uma pessoa. Se houver títulos, marque a opção; nenhum nome de coluna específico é exigido. Clique em **Enviar e mapear campos**. Selecione as colunas de nome, e-mail e nascimento pela posição (Coluna 1, Coluna 2...) e pelos exemplos. Telefone e perfil são opcionais. As colunas não selecionadas serão ignoradas. Quando houver cabeçalho, o sistema sugere títulos comuns; revise as sugestões.
 5. Clique em **Validar mapeamento e visualizar**. Confira os nomes, nascimentos, e-mails, perfis e avisos. Se necessário, ajuste o mapeamento e gere uma nova prévia. Marque a confirmação e clique em **Importar pessoas**.
-6. Confira o resultado por linha. Linhas inválidas não são importadas; corrija-as e envie novamente. E-mails já cadastrados, inclusive fora do plugin, são ignorados e preservados.
+6. Mantenha a página aberta enquanto a criação prossegue automaticamente. O progresso é salvo a cada etapa. Se sair da página, volte e clique em **Continuar importação** para retomar. Confira o resultado por linha e use Anterior/Próxima para percorrer a lista. Linhas inválidas não são importadas; corrija-as e envie novamente. E-mails já cadastrados, inclusive fora do plugin, são ignorados e preservados.
 
 | Coluna | Regra |
 | --- | --- |
@@ -197,7 +197,7 @@ Apenas administradores do WordPress podem importar. Pastor, líder de departamen
 
 A senha inicial de cada nova conta é a data de nascimento em **ddmmaaaa**, com oito dígitos e zeros à esquerda. Exemplo: **07/03/1990 → 07031990**. A pessoa entra com seu e-mail e essa senha. Contas existentes mantêm a senha, o perfil e os contatos, inclusive em reenvios ou confirmações repetidas. Não é possível criar administradores, escolher senhas arbitrárias ou vincular equipes/funções por esse arquivo. Cada nova conta começa ativa; os vínculos com equipes e funções são feitos depois no aplicativo. O plugin não dispara e-mails durante a carga.
 
-Limites: **200 pessoas, 100 colunas e 2 MB por arquivo**. Arquivo, mapeamento e prévia ficam vinculados ao administrador que os gerou, expiram em até 1 hora e podem ser apagados em **Limpar arquivo/prévia/resultado**. Enviar outro arquivo substitui o anterior. O CSV não é publicado na biblioteca de mídia. Prévias geradas antes desta versão precisam ser enviadas novamente.
+**Sem limite de pessoas por arquivo.** O CSV pode ter até **100 colunas e 2 MB**. Arquivo, mapeamento e progresso ficam vinculados ao administrador que os gerou e expiram após 1 hora sem atividade. A lista mostra 100 registros por página; a paginação não limita a quantidade importada. Use **Limpar arquivo/prévia/resultado** para descartar a carga. Enviar outro arquivo substitui o anterior. O CSV não é publicado na biblioteca de mídia.
 
 
 ## Busca de pessoas — 0.8.1

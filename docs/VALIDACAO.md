@@ -1,6 +1,8 @@
-# Validação — versão 0.10.0
+# Validação — versão 0.10.1
 
-A release 0.10.0 é publicada pelo workflow do repositório somente após aprovação das etapas de validação em GitHub Actions, com PHP 8.3, MySQL 8 e WordPress baixado durante a execução. O resultado público está em https://github.com/paulommaeda/escalas/actions.
+A release 0.10.1 é publicada pelo workflow do repositório somente após aprovação das etapas de validação em GitHub Actions, com PHP 8.3, MySQL 8 e WordPress baixado durante a execução. O resultado público está em https://github.com/paulommaeda/escalas/actions.
+
+Cobertura de CSV sem cabeçalho por padrão, primeira pessoa preservada, arquivo com uma pessoa, BOM/linhas vazias/aspas, mapeamento por posição e exemplos e cabeçalho opcional. O parser aceita 1.001 registros; o teste integrado cria 201 usuários em requisições sucessivas, exercita a continuação pelo controlador administrativo com nonce, verifica a senha de nascimento e a preservação de uma senha alterada durante a carga, percorre a última página de resultados e repete a confirmação sem duplicar contas.
 
 A importação é exercitada em WordPress/MySQL com colunas arbitrárias e duplicadas, aliases, CSV com vírgula/ponto e vírgula, colunas ignoradas, campos opcionais, datas e anos bissextos, limites e dados inválidos. O teste cria usuários, verifica os hashes e o login com a senha ddmmaaaa, os perfis e metadados, e a preservação de contas existentes, inclusive contas criadas após a prévia. Confirmação repetida não recria usuários nem troca a senha. Também verifica permissões, tokens e isolamento por administrador, prévias expiradas/antigas e a saída HTML da tela de mapeamento.
 

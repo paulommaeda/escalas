@@ -1,11 +1,11 @@
-## CCShalom Escalas 0.10.0
+## CCShalom Escalas 0.10.1
 
-- Importação em etapas: enviar CSV, mapear campos, conferir prévia e confirmar.
-- Mapeamento de nome, e-mail, nascimento, telefone e perfil, com sugestão automática para colunas comuns e descarte das colunas não selecionadas.
-- Data de nascimento obrigatória para novas pessoas; senha inicial em **ddmmaaaa**. Exemplo: 07/03/1990 → 07031990.
-- Validação de datas reais, incluindo anos bissextos; datas futuras ou ausentes impedem a criação da conta.
-- Contas existentes e suas senhas, perfis e contatos são preservados. Telefone e perfil são opcionais; o perfil padrão é Voluntário.
-- Modelo CSV atualizado. Importação exclusiva para administradores.
+- Removido o limite de 200 pessoas por arquivo.
+- CSV sem cabeçalho por padrão: a primeira linha já é uma pessoa e participa da importação.
+- Mapeamento por posição das colunas e exemplos dos valores. Cabeçalho opcional, sem exigir títulos específicos.
+- Criação progressiva com continuação automática e progresso salvo. Se sair da página, retome em **Continuar importação**.
+- Prévia e resultados paginados para arquivos maiores. O arquivo pode ter até 2 MB e 100 colunas, sem limite fixo de pessoas.
+- Senha inicial de nascimento em **ddmmaaaa** e preservação de contas existentes.
 
-Atualize pelo painel do WordPress em **Escalas → Atualizações → Verificar agora**. A importação está em **Escalas → Importar pessoas**. Pré-exibições de versões anteriores precisam ser enviadas novamente para incluir o nascimento e o mapeamento.
+Atualize em **Escalas → Atualizações → Verificar agora**. Em **Escalas → Importar pessoas**, deixe a opção de cabeçalho desmarcada quando a primeira linha já contiver os dados de uma pessoa.
 

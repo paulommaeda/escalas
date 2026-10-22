@@ -19,7 +19,9 @@ A consulta usa somente releases estáveis com o arquivo **ccshalom-escalas.zip**
 
 ## Importar pessoas
 
-Em **Escalas → Importar pessoas**, envie um CSV UTF-8 com cabeçalho e escolha a coluna de cada campo. Nome, e-mail e data de nascimento são obrigatórios; telefone e perfil são opcionais. Os títulos e a ordem das colunas podem variar. Confira a prévia antes de confirmar a criação.
+Em **Escalas → Importar pessoas**, envie um CSV UTF-8 com ou sem cabeçalho e escolha a coluna de cada campo pela posição e pelos exemplos. Por padrão a primeira linha já é uma pessoa; marque **A primeira linha contém títulos de colunas** somente se houver cabeçalho. Os títulos e a ordem podem variar. Nome, e-mail e nascimento são obrigatórios; telefone e perfil são opcionais. Confira a prévia antes de confirmar a criação.
+
+Não há limite de pessoas por arquivo. O CSV pode ter até 2 MB e 100 colunas. A criação prossegue automaticamente em etapas, com progresso salvo e prévia/resultado paginados. Mantenha a página aberta; se sair, volte à importação e clique em **Continuar importação** para retomar a carga pendente dentro de 1 hora.
 
 A senha inicial das novas contas é a data de nascimento em **ddmmaaaa**: 07/03/1990 gera 07031990. Datas inválidas, ausentes ou futuras impedem o cadastro. Aceita dd/mm/aaaa, aaaa-mm-dd e ddmmaaaa. Contas existentes são ignoradas, preservando senhas e perfis. O modelo atualizado está disponível na própria tela.
 

@@ -2,7 +2,7 @@
 Contributors: ccshalom
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 0.10.0
+Stable tag: 0.10.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,13 @@ Cadastro de voluntários, celebrações, equipes e vagas por função.
 Guia completo: docs/GUIA-DE-INSTALACAO.md.
 
 == Changelog ==
+= 0.10.1 =
+Removido o limite de 200 pessoas por arquivo.
+CSV com ou sem cabeçalho: mapeamento por posição e exemplos de valores.
+Sem cabeçalho por padrão, preservando a primeira pessoa do arquivo.
+Criação progressiva com continuação automática e retomada, sem limite de pessoas por carga.
+Prévia e resultado paginados; mantidos o tamanho máximo de 2 MB e a senha de nascimento.
+
 = 0.10.0 =
 Importação com mapeamento de colunas, sugestão automática e prévia antes de confirmar.
 Data de nascimento obrigatória para novas pessoas e senha inicial no formato ddmmaaaa.
