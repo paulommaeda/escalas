@@ -2,7 +2,7 @@
 Contributors: ccshalom
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 0.9.0
+Stable tag: 0.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,12 @@ Cadastro de voluntários, celebrações, equipes e vagas por função.
 Guia completo: docs/GUIA-DE-INSTALACAO.md.
 
 == Changelog ==
+= 0.10.0 =
+Importação com mapeamento de colunas, sugestão automática e prévia antes de confirmar.
+Data de nascimento obrigatória para novas pessoas e senha inicial no formato ddmmaaaa.
+Contas existentes preservadas, incluindo senha, perfil e contatos.
+Modelo CSV atualizado; validação de datas reais, campos e mapeamentos.
+
 = 0.9.0 =
 Tela de atualizações via GitHub: repositório, verificação manual, status e instalação automática opcional.
 Repositório padrão paulommaeda/escalas e publicação de releases com ZIP instalável.
@@ -79,3 +85,4 @@ Migração automática e preservação das escalas anteriores.
 = 0.1.0 =
 Painel mobile, login personalizado, cadastros, escalas recorrentes, conflitos,
 confirmações, substituições e atualização por GitHub público.
+

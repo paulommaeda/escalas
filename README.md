@@ -17,6 +17,12 @@ No WordPress, abra **Escalas → Atualizações**:
 
 A consulta usa somente releases estáveis com o arquivo **ccshalom-escalas.zip**. A instalação automática utiliza o agendador nativo do WordPress. Repositórios privados não são suportados.
 
+## Importar pessoas
+
+Em **Escalas → Importar pessoas**, envie um CSV UTF-8 com cabeçalho e escolha a coluna de cada campo. Nome, e-mail e data de nascimento são obrigatórios; telefone e perfil são opcionais. Os títulos e a ordem das colunas podem variar. Confira a prévia antes de confirmar a criação.
+
+A senha inicial das novas contas é a data de nascimento em **ddmmaaaa**: 07/03/1990 gera 07031990. Datas inválidas, ausentes ou futuras impedem o cadastro. Aceita dd/mm/aaaa, aaaa-mm-dd e ddmmaaaa. Contas existentes são ignoradas, preservando senhas e perfis. O modelo atualizado está disponível na própria tela.
+
 ## Desenvolvimento e publicação
 
 O código do plugin fica na raiz deste repositório. Cada nova versão deve alterar o cabeçalho e a constante em ccshalom-escalas.php, o Stable tag em readme.txt e as notas em docs/RELEASE.md.
@@ -29,3 +35,4 @@ Saída: dist/ccshalom-escalas.zip, com a pasta correta do plugin. Credenciais de
 
 Guia: [docs/GUIA-DE-INSTALACAO.md](docs/GUIA-DE-INSTALACAO.md).
 Validação e limitações: [docs/VALIDACAO.md](docs/VALIDACAO.md).
+

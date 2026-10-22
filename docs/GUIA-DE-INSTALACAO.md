@@ -1,8 +1,8 @@
-# CCShalom Escalas — 0.9.0
+# CCShalom Escalas — 0.10.0
 
 ## Atualização
 
-Faça backup do site e do banco. Em **Plugins → Adicionar plugin → Enviar plugin**, envie `ccshalom-escalas-0.9.0.zip` e escolha substituir a versão instalada. Abra o painel de escalas: a migração é automática e preserva cadastros, datas, respostas, substituições e histórico. Atualize o cache dos arquivos CSS/JavaScript.
+Faça backup do site e do banco. Atualize em **Escalas → Atualizações → Verificar agora**. Para instalar pelo ZIP, envie `ccshalom-escalas.zip` em **Plugins → Adicionar plugin → Enviar plugin** e escolha substituir a versão instalada. Abra o painel de escalas: a migração é automática e preserva cadastros, datas, respostas, substituições e histórico. Atualize o cache dos arquivos CSS/JavaScript.
 
 As equipes existentes mantêm o modo anterior. Para adotar o novo processo, edite a equipe e escolha **Vagas por função**; cadastre suas funções antes de gerar novas datas. Escalas já publicadas não são convertidas nem duplicadas automaticamente. As novas equipes já usam vagas por função como padrão.
 
@@ -176,27 +176,28 @@ Para cadastrar Secretaria, o administrador/pastor escolhe **Secretaria (consulta
 A Gestão aparece para o perfil Líder de departamento mesmo antes de haver um departamento vinculado. O gerenciamento de equipes e escalas continua restrito aos departamentos sob sua liderança. Líderes de equipe acessam as ferramentas da própria equipe em **Equipes** e nos detalhes das escalas, sem a aba Gestão. A função de liderança exige o perfil correspondente, além do vínculo de líder no cadastro.
 
 
-## Importar pessoas — versão 0.8.0
+## Importar pessoas — versão 0.10.0
 
 Apenas administradores do WordPress podem importar. Pastor, líder de departamento, líder de equipe, voluntário e Secretaria não recebem esta permissão pelo perfil de escalas.
 
 1. No WordPress, abra **Escalas → Importar pessoas**, ou use **Gestão → Importar pessoas** no aplicativo.
-2. Clique em **Baixar modelo CSV** e substitua a pessoa de exemplo pelos seus dados.
-3. Preencha as colunas abaixo e salve como **CSV UTF-8**. Aceita separador por vírgula ou ponto e vírgula, inclusive campos entre aspas. XLSX não é aceito diretamente: exporte a planilha como CSV UTF-8.
-4. Envie o arquivo e clique em **Validar e visualizar**.
-5. Confira os nomes, e-mails, perfis e avisos. Marque a confirmação e clique em **Importar pessoas**.
-6. Confira o resultado por linha. As linhas inválidas não são importadas; corrija-as e envie novamente. E-mails já cadastrados, inclusive fora do plugin, são ignorados e preservados.
+2. Use sua planilha com cabeçalho ou clique em **Baixar modelo CSV**. Substitua a pessoa de exemplo pelos seus dados.
+3. Salve como **CSV UTF-8**, com vírgula ou ponto e vírgula. Campos entre aspas são aceitos. XLSX não é aceito diretamente: exporte a planilha como CSV UTF-8.
+4. Clique em **Enviar e mapear campos**. Selecione a coluna de nome, e-mail e data de nascimento; telefone e perfil são opcionais. Os títulos e a ordem das colunas podem variar. As colunas não selecionadas serão ignoradas. O sistema sugere títulos comuns, como Nome Completo, E-mail, Data de Nascimento e Celular; revise as sugestões.
+5. Clique em **Validar mapeamento e visualizar**. Confira os nomes, nascimentos, e-mails, perfis e avisos. Se necessário, ajuste o mapeamento e gere uma nova prévia. Marque a confirmação e clique em **Importar pessoas**.
+6. Confira o resultado por linha. Linhas inválidas não são importadas; corrija-as e envie novamente. E-mails já cadastrados, inclusive fora do plugin, são ignorados e preservados.
 
 | Coluna | Regra |
 | --- | --- |
 | nome | Obrigatório; até 150 caracteres. |
 | email | Obrigatório; válido e exclusivo. Usado para login e recuperação de senha. |
+| data_nascimento | Obrigatória para novas pessoas; data real e não futura em dd/mm/aaaa, aaaa-mm-dd ou ddmmaaaa. |
 | telefone | Opcional; DDD e 10 a 15 dígitos. Aceita pontuação. |
 | perfil | Opcional; vazio significa voluntario. Valores: voluntario, lider_de_equipe, lider_de_departamento, pastor, secretaria. |
 
-Não é possível criar administradores, alterar contas existentes, importar senhas ou vincular equipes/funções por esse arquivo. Cada nova conta começa ativa; os vínculos com equipes e funções são feitos depois no aplicativo. Cada pessoa define a senha por **Perdeu a senha?**; configure o envio de e-mails do WordPress. O plugin não dispara e-mails durante a carga.
+A senha inicial de cada nova conta é a data de nascimento em **ddmmaaaa**, com oito dígitos e zeros à esquerda. Exemplo: **07/03/1990 → 07031990**. A pessoa entra com seu e-mail e essa senha. Contas existentes mantêm a senha, o perfil e os contatos, inclusive em reenvios ou confirmações repetidas. Não é possível criar administradores, escolher senhas arbitrárias ou vincular equipes/funções por esse arquivo. Cada nova conta começa ativa; os vínculos com equipes e funções são feitos depois no aplicativo. O plugin não dispara e-mails durante a carga.
 
-Limites: **200 pessoas e 2 MB por arquivo**. A prévia fica vinculada ao administrador que a gerou, expira em até 1 hora e pode ser apagada em **Limpar prévia/resultado**. Enviar outro arquivo substitui a prévia anterior. O CSV não é publicado na biblioteca de mídia.
+Limites: **200 pessoas, 100 colunas e 2 MB por arquivo**. Arquivo, mapeamento e prévia ficam vinculados ao administrador que os gerou, expiram em até 1 hora e podem ser apagados em **Limpar arquivo/prévia/resultado**. Enviar outro arquivo substitui o anterior. O CSV não é publicado na biblioteca de mídia. Prévias geradas antes desta versão precisam ser enviadas novamente.
 
 
 ## Busca de pessoas — 0.8.1
@@ -212,3 +213,4 @@ Instale esta versão por ZIP uma vez. Depois, entre em **WordPress → Escalas �
 A opção **Permitir que o WordPress instale novas versões automaticamente** é facultativa. Sem ela, as atualizações ficam disponíveis para instalação manual. Com ela, o WordPress usa seu agendador e as permissões da hospedagem para instalar. Consultas malsucedidas exibem um aviso; nenhuma versão é instalada sem um pacote válido.
 
 O GitHub publica um pacote apenas após os testes do workflow passarem. Um simples commit com a mesma versão não gera uma nova release. O pacote oficial tem o nome ccshalom-escalas.zip e contém a pasta ccshalom-escalas; não utilize o ZIP genérico “Source code” do GitHub para a atualização automática.
+

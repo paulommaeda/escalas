@@ -40,9 +40,7 @@ check($wpdb->get_var('SELECT assigned_id FROM '.CCS::table('slots')." WHERE id=$
 wp_set_current_user($s);$state=CCS::state();check(count($state['teams'])===1 && !$state['events'][0]['can_claim'],'secretary sees without claiming');
 wp_set_current_user($admin);check(CCS::import_allowed(),'admin import');
 wp_set_current_user($p);check(!CCS::import_allowed(),'pastor not admin cannot import');
-$rows=CCS::import_csv("\xEF\xBB\xBFnome;email;telefone;perfil\r\nJoão;novo@example.invalid;41999999999;voluntario\r\nDuplicado;novo@example.invalid;;\r\nInvalid;bad;;\r\nElevated;other@example.invalid;;administrator\r\n");
-check(array_column($rows,'status')===['ready','skipped','invalid','invalid'],'CSV validation and duplicates');
-check(CCS::import_csv("nome,email\nTeste,third@example.invalid\n")[0]['status']==='ready','comma CSV');
+require __DIR__.'/import.php';
 $mock=['tag_name'=>'v9.9.9','draft'=>false,'prerelease'=>false,'body'=>'Release','assets'=>[['name'=>'ccshalom-escalas.zip','browser_download_url'=>'https://github.com/paulommaeda/escalas/releases/download/v9.9.9/ccshalom-escalas.zip']]];
 add_filter('pre_http_request',function($pre,$args,$url) use (&$mock) { if (str_starts_with($url,'https://api.github.com/repos/')) { return ['headers'=>[],'response'=>['code'=>200],'body'=>wp_json_encode($mock),'cookies'=>[]]; }return $pre; },10,3);
 wp_set_current_user($admin);
@@ -61,3 +59,4 @@ $mock['prerelease']=false;$mock['assets'][0]['browser_download_url']='https://gi
 update_option('ccs_github_enabled','1');ccs_github_check(true);
 $before=$wpdb->get_var('SELECT COUNT(*) FROM '.CCS::table('events'));CCS::activate();check($before===$wpdb->get_var('SELECT COUNT(*) FROM '.CCS::table('events')),'idempotent schema');
 echo "TOTAL $checks WordPress checks\n";
+

@@ -1,6 +1,8 @@
-# Validação — versão 0.9.0
+# Validação — versão 0.10.0
 
-A release 0.9.0 é publicada pelo workflow do repositório somente após aprovação das etapas de validação em GitHub Actions, com PHP 8.3, MySQL 8 e WordPress baixado durante a execução. O resultado público está em https://github.com/paulommaeda/escalas/actions.
+A release 0.10.0 é publicada pelo workflow do repositório somente após aprovação das etapas de validação em GitHub Actions, com PHP 8.3, MySQL 8 e WordPress baixado durante a execução. O resultado público está em https://github.com/paulommaeda/escalas/actions.
+
+A importação é exercitada em WordPress/MySQL com colunas arbitrárias e duplicadas, aliases, CSV com vírgula/ponto e vírgula, colunas ignoradas, campos opcionais, datas e anos bissextos, limites e dados inválidos. O teste cria usuários, verifica os hashes e o login com a senha ddmmaaaa, os perfis e metadados, e a preservação de contas existentes, inclusive contas criadas após a prévia. Confirmação repetida não recria usuários nem troca a senha. Também verifica permissões, tokens e isolamento por administrador, prévias expiradas/antigas e a saída HTML da tela de mapeamento.
 
 A rotina verifica sintaxe de todos os arquivos PHP e JavaScript; busca/paginação de pessoas; criação das tabelas e repetição da ativação; permissões dos perfis; cadastro e atribuição de funções; publicação/delegação; bloqueio de participação da Secretaria; troca entre equipes com aceite do destinatário; leitura e validação de CSV; integração do atualizador com o mecanismo nativo do WordPress, rejeição de URLs externas e pré-releases.
 
@@ -99,3 +101,4 @@ Telas de login e perfil revisadas visualmente em 320, 390 e 1280 pixels. Arquivo
 Não foi usado um celular físico nem validado Face ID/Touch ID real, Android, Safari ou um PWA instalado. Os testes usam autenticador virtual em localhost; a hospedagem real precisa de HTTPS e OpenSSL. O envio de recuperação foi capturado localmente, sem teste de SMTP real. Não foram testadas combinações com plugins de segurança/SSO/2FA, CDN/cache, alto volume ou todas as versões mínimas declaradas.
 
 O recurso de passkeys é um método próprio de autenticação e não foi integrado a etapas adicionais de plugins externos de 2FA/SSO. A instalação de PWA/service worker continua sendo responsabilidade da configuração de PWA do site; esta versão não cria um segundo service worker nem oferece acesso offline aos dados privados.
+
