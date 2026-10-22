@@ -25,7 +25,7 @@ const {chromium}=require(process.env.CCS_PLAYWRIGHT_MODULE||'playwright');
   assert.equal(await page.locator('#ccs-dialog [data-action="confirm"][data-id="60"]').count(),1);
   assert.equal(await page.locator('#ccs-dialog [data-action="confirm"][data-id="62"]').count(),0);
   assert.equal(await page.locator('#ccs-dialog [data-action="edit_occurrence"]').count(),0);
-  await page.locator('#ccs-dialog [data-action="confirm"]').click();await page.waitForFunction(()=>document.querySelector('#ccs-dialog[open]')?.textContent.includes('Sua participação')||document.querySelector('#ccs-dialog[open]')?.textContent.includes('Confirmado'));
+  await page.locator('#ccs-dialog [data-action="confirm"]').click();await page.waitForFunction(()=>{const d=document.querySelector('#ccs-dialog[open]');return d?.querySelector('.ccs-slot .ccs-badge.confirmed')&&!d.querySelector('[data-action="confirm"][data-id="60"]');});
   assert(actions.some(a=>a.action==='respond'&&a.id===60));await page.locator('#ccs-dialog [data-action="close"]').click();
   await page.locator('[data-view="profile"]').click();await page.locator('#provider-button').click();
   await page.locator('[data-view="home"]').click();assert.equal(await page.locator('#ccs-push-parking #ccs-push-panel').count(),1);

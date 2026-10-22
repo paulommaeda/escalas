@@ -73,7 +73,7 @@ act($ev_leadA,['action'=>'delete','type'=>'occurrence','id'=>$ev_root,'confirm'=
 $ev_editA=['action'=>'edit_schedule','id'=>$ev_childA,'title'=>'Evento unificado','location'=>'Auditório','arrival'=>substr(str_replace(' ','T',$ev_o['arrival']),0,16),'starts'=>substr(str_replace(' ','T',$ev_o['starts']),0,16),'ends'=>substr(str_replace(' ','T',$ev_o['ends']),0,16),'notes'=>'Chegar com instrumentos'];
 act($ev_leadA,array_merge($ev_editA,['title'=>'Alteração global indevida']),403);
 act($ev_leadC,$ev_editA,403);act($ev_leadA,$ev_editA);
-check($wpdb->get_var($wpdb->prepare('SELECT notes FROM '.CCS::table('events').' WHERE id=%d',$ev_childC))==='','team notes do not modify another department');
+check((string)$wpdb->get_var($wpdb->prepare('SELECT notes FROM '.CCS::table('events').' WHERE id=%d',$ev_childC))==='','team notes do not modify another department');
 act($d,ev_edit($ev_root,['notes'=>'Não permitido']),403);
 act($admin,ev_edit($ev_root,['requirements'=>[['department_id'=>$ev_depA,'team_count'=>1]]]),409);
 $ev_shift=current_datetime()->modify('+70 days')->format('Y-m-d');
