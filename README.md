@@ -17,6 +17,10 @@ No WordPress, abra **Escalas → Atualizações**:
 
 A consulta usa somente releases estáveis com o arquivo **ccshalom-escalas.zip**. A instalação automática utiliza o agendador nativo do WordPress. Repositórios privados não são suportados.
 
+## E-mails e alterações de senha
+
+Na versão 0.10.2, hospedagens com `mail()` indisponível recebem uma falha de envio tratada pelo WordPress, permitindo concluir alterações de senha e e-mail sem erro crítico. Um aviso é mostrado ao administrador. Configure SMTP ou outro serviço de e-mail para entregar notificações e recuperação de senha. Serviços existentes são preservados; a proteção não substitui um serviço de envio.
+
 ## Importar pessoas
 
 Em **Escalas → Importar pessoas**, envie um CSV UTF-8 com ou sem cabeçalho e escolha a coluna de cada campo pela posição e pelos exemplos. Por padrão a primeira linha já é uma pessoa; marque **A primeira linha contém títulos de colunas** somente se houver cabeçalho. Os títulos e a ordem podem variar. Nome, e-mail e nascimento são obrigatórios; telefone e perfil são opcionais. Confira a prévia antes de confirmar a criação.

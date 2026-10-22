@@ -1,6 +1,10 @@
-# Validação — versão 0.10.1
+# Validação — versão 0.10.2
 
-A release 0.10.1 é publicada pelo workflow do repositório somente após aprovação das etapas de validação em GitHub Actions, com PHP 8.3, MySQL 8 e WordPress baixado durante a execução. O resultado público está em https://github.com/paulommaeda/escalas/actions.
+A release 0.10.2 é publicada pelo workflow do repositório somente após aprovação das etapas de validação em GitHub Actions, com PHP 8.3, MySQL 8 e WordPress baixado durante a execução. O resultado público está em https://github.com/paulommaeda/escalas/actions.
+
+Regressão do erro crítico com PHP executado com `-d disable_functions=mail`, sem preemptar o envio com um retorno de sucesso fictício. O teste chama wp_update_user, confere a senha no banco e autentica com a senha nova; altera e-mail; verifica o erro real de entrega em retrieve_password; e executa reset_password. A falha nativa gera wp_mail_failed e um aviso administrativo sem conteúdo de mensagens ou senhas. Com mail() disponível, o controle confirma que o mailer não é substituído. Também são preservados serviços que interceptam pre_wp_mail, classes de mailer personalizadas e configurações públicas do mailer padrão.
+
+Um servidor SMTP de teste recebe mensagens somente em 127.0.0.1, sem encaminhamento externo. O teste verifica a entrega ao servidor local e o aviso de troca de senha via SMTP mesmo com mail() desabilitada. Não utiliza credenciais reais nem comprova a entrega pelo provedor da igreja. A proteção converte a falha em erro tratável; o envio efetivo exige SMTP ou outro serviço de e-mail configurado.
 
 Cobertura de CSV sem cabeçalho por padrão, primeira pessoa preservada, arquivo com uma pessoa, BOM/linhas vazias/aspas, mapeamento por posição e exemplos e cabeçalho opcional. O parser aceita 1.001 registros; o teste integrado cria 201 usuários em requisições sucessivas, exercita a continuação pelo controlador administrativo com nonce, verifica a senha de nascimento e a preservação de uma senha alterada durante a carga, percorre a última página de resultados e repete a confirmação sem duplicar contas.
 

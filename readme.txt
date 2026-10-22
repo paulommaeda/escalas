@@ -2,7 +2,7 @@
 Contributors: ccshalom
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 0.10.1
+Stable tag: 0.10.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,12 @@ Cadastro de voluntários, celebrações, equipes e vagas por função.
 Guia completo: docs/GUIA-DE-INSTALACAO.md.
 
 == Changelog ==
+= 0.10.2 =
+Corrige erro crítico ao alterar senha quando a função mail() está indisponível na hospedagem.
+Falha do transporte nativo retorna erro de envio; alteração de senha pode concluir normalmente.
+SMTP e serviços externos de envio são preservados; aviso administrativo orienta configurar o envio.
+Regressão com mail() desabilitada, autenticação e SMTP local de teste.
+
 = 0.10.1 =
 Removido o limite de 200 pessoas por arquivo.
 CSV com ou sem cabeçalho: mapeamento por posição e exemplos de valores.

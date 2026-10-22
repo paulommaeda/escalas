@@ -50,6 +50,16 @@ jobs:
         env:
           CCS_WP_PATH: /tmp/ccs-wp
         run: php tests/wordpress-smoke.php
+      - name: Alteração de senha sem mail e compatibilidade SMTP
+        env:
+          CCS_WP_PATH: /tmp/ccs-wp
+        run: |
+          set -euo pipefail
+          CCS_TEST_NATIVE_MAIL=1 php tests/mail.php
+          python3 tests/smtp-sink.py > /tmp/ccs-smtp-test.log 2>&1 &
+          ccs_smtp_test_pid=$!
+          trap 'kill "$ccs_smtp_test_pid" 2>/dev/null || true' EXIT
+          php -d disable_functions=mail tests/mail.php
       - name: Gerar pacote
         run: python3 scripts/package.py
       - uses: actions/upload-artifact@v4
@@ -83,3 +93,4 @@ jobs:
           else
             gh release create "v$VERSION" dist/ccshalom-escalas.zip --target "$GITHUB_SHA" --title "CCShalom Escalas $VERSION" --notes-file docs/RELEASE.md --latest
           fi
+

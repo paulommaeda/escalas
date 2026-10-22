@@ -7,11 +7,13 @@ require_once __DIR__.'/trait-auth.php';
 require_once __DIR__.'/trait-passkeys.php';
 require_once __DIR__.'/trait-management.php';
 require_once __DIR__.'/trait-import.php';
+require_once __DIR__.'/class-ccs-mail.php';
 final class CCS {
     use CCS_Celebrations, CCS_Registration, CCS_Functions, CCS_Auth, CCS_Passkeys, CCS_Management, CCS_Import;
     public static function table($name) { global $wpdb; return $wpdb->prefix . 'ccs_' . $name; }
     public static function boot() {
         self::auth_boot();
+        CCS_Mail::boot();
         add_action('admin_post_ccs_import_template',[__CLASS__,'import_template']);
         add_action('plugins_loaded', [__CLASS__, 'maybe_upgrade'], 5);
         add_action('rest_api_init', [__CLASS__, 'routes']);
@@ -431,3 +433,4 @@ final class CCS {
 }
 final class CCS_Exception extends RuntimeException {}
 require_once CCS_DIR.'includes/updater.php';
+

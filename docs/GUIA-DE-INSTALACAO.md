@@ -1,4 +1,4 @@
-# CCShalom Escalas — 0.10.1
+# CCShalom Escalas — 0.10.2
 
 ## Atualização
 
@@ -7,6 +7,8 @@ Faça backup do site e do banco. Atualize em **Escalas → Atualizações → Ve
 As equipes existentes mantêm o modo anterior. Para adotar o novo processo, edite a equipe e escolha **Vagas por função**; cadastre suas funções antes de gerar novas datas. Escalas já publicadas não são convertidas nem duplicadas automaticamente. As novas equipes já usam vagas por função como padrão.
 
 ## Instalação inicial
+
+Se a hospedagem desabilitar a função PHP `mail()`, a versão 0.10.2 trata a falha de envio para permitir concluir alterações de senha e e-mail no WordPress. O administrador recebe um aviso sobre a configuração do envio. Configure um serviço SMTP ou outro serviço de e-mail no WordPress para entregar avisos e links de recuperação; a proteção contra erro crítico não entrega mensagens por conta própria. Transportes SMTP e serviços externos já configurados continuam sendo utilizados.
 
 WordPress individual (sem multisite), WordPress 6.4+, PHP 8.0+, MySQL/MariaDB com InnoDB e GET_LOCK. Use HTTPS na hospedagem definitiva. Configure o fuso da igreja em **Configurações → Geral** antes de publicar datas.
 
