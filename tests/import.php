@@ -1,5 +1,6 @@
 <?php
 // Runs inside wordpress-smoke.php, against the real WordPress users and MySQL.
+require_once ABSPATH.'wp-admin/includes/template.php';
 function import_rejects($callback,$code,$message) {
     try { $callback(); } catch (CCS_Exception $e) { check($e->getCode()===$code,$message);return; }
     check(false,$message.' (accepted unexpectedly)');
