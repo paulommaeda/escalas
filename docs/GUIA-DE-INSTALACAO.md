@@ -1,4 +1,4 @@
-# CCShalom Escalas — 0.14.0
+# CCShalom Escalas — 0.14.1
 
 ## Atualização
 
@@ -161,7 +161,7 @@ O voluntário pode confirmar, informar indisponibilidade ou liberar uma vaga abe
 
 Após informar indisponibilidade, o responsável convida outro voluntário ativo com a mesma função no perfil, inclusive de outra equipe. A troca só acontece com aceite e sem conflito de horário. Para escalas antigas sem função definida, permanece a seleção de voluntários ativos. A função e o histórico da escala são preservados; não há aprovação adicional da liderança.
 
-Alterar horários de uma escala avulsa por função reabre suas vagas para nova escolha. Escalas ligadas a uma celebração acompanham os horários dela; o pastor pode usar “Editar esta data” na celebração. Mudar horários pede nova confirmação. Um usuário não pode ocupar funções simultâneas com horários sobrepostos, inclusive em equipes diferentes.
+Alterar horários de uma escala avulsa por função reabre suas vagas para nova escolha. Escalas ligadas a uma celebração acompanham os horários dela; o pastor pode usar “Editar esta data” na celebração. Mudar horários pede nova confirmação. Uma pessoa pode ocupar várias funções no mesmo evento, inclusive em equipes e departamentos diferentes. Cada atribuição tem sua própria confirmação, indisponibilidade e troca. Retirar uma convocação afeta somente aquela função. Ao mudar os horários do evento, todas as atribuições ativas pedem nova confirmação, sem rejeitar pessoas com mais de uma função. O conflito de horário é aplicado a eventos distintos com intervalos sobrepostos, considerando a chegada das equipes. Datas diferentes da mesma celebração são eventos distintos. Em escalas avulsas antigas sem evento agrupado, a exceção abrange apenas as funções daquela escala.
 
 ## Modos anteriores
 

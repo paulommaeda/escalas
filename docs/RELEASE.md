@@ -1,13 +1,12 @@
-## CCShalom Escalas 0.14.0
+## CCShalom Escalas 0.14.1
 
-- Novo formato de equipe: **Convocação por função pela liderança**, indicado para a Pastoral e para outras equipes designadas pela liderança.
-- Crie livremente funções no cadastro geral, como Pregação, Direção do culto, Ceia e outras. Selecione as funções e quantidades da equipe e habilite os integrantes correspondentes.
-- A participação da equipe cria necessidades por função. A liderança escolhe os integrantes; não há voluntariado nessas vagas nem convocação automática de toda a equipe.
-- A atribuição fica confirmada e gera aviso individual. A pessoa pode informar indisponibilidade e solicitar substituição pela mesma função, com aceite.
-- A liderança pode alterar ou retirar convocações; a pessoa anterior é avisada e os pedidos de troca pendentes são cancelados. Edições desatualizadas são recusadas para evitar sobrescritas.
-- Novas funções podem ser acrescentadas às equipes e, quando necessário, às datas publicadas por Ajustar vagas por função.
-- Formatos e confirmações das datas existentes são preservados ao alterar o padrão da equipe. Secretaria permanece em consulta e as permissões de gestão continuam sendo respeitadas.
+- A mesma pessoa pode ocupar várias funções no mesmo evento, como Abrir, Pregação e Fechar, inclusive em equipes e departamentos diferentes.
+- A regra vale para convocações pela liderança, escolha de vagas, confirmações, equipes inteiras e substituições aceitas.
+- Cada função mantém sua própria situação. Retirar ou declinar uma convocação não remove as outras participações.
+- Alterar os horários do evento mantém as pessoas designadas e solicita nova confirmação para todas as suas atribuições.
+- Eventos distintos com horários sobrepostos continuam bloqueados. A verificação considera a chegada das equipes; horários que apenas se encostam são permitidos.
+- Escalas avulsas antigas permitem múltiplas funções no próprio registro, sem eliminar conflitos com outras escalas.
 
-Atualize em **Escalas → Atualizações → Verificar agora**. Depois, edite a equipe Pastoral e selecione o novo formato. Ele será usado nas próximas participações publicadas.
+Atualize em **Escalas → Atualizações → Verificar agora**. Não é necessário recriar equipes, funções ou eventos existentes.
 
-O workflow valida os fluxos dirigidos em WordPress/MySQL e Chromium/mobile, além das regressões de eventos, tarefas/Kanban, importação, atualizador, Portal Push e SMTP.
+O workflow valida os fluxos em WordPress/MySQL e a convocação da mesma pessoa em duas funções no navegador mobile, além das regressões de permissões, tarefas/Kanban, Portal Push, importação, atualizador e SMTP.

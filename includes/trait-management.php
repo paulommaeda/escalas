@@ -36,16 +36,17 @@ trait CCS_Management {
             }
             $changed=$data['starts']!==$o['starts'] || $data['arrival']!==$o['arrival'] || $data['ends']!==$o['ends'];
             $events=$wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('events')." WHERE occurrence_id=%d AND status='published'",$id),ARRAY_A);
-            $ids=array_map(fn($e)=>(int)$e['id'],$events);$seen=[];
+            $checked=[];
             foreach ($events as $event) {
                 if ($changed) {
                     $slots=$wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('slots')." WHERE event_id=%d AND status<>'withdrawn'",$event['id']),ARRAY_A);
                     foreach ($slots as $slot) {
                         $user=(int)$slot['assigned_id'];
                         if ($user && in_array($slot['status'],['pending','confirmed'],true)) {
-                            self::require_that(!isset($seen[$user]),'Uma pessoa está atribuída a mais de uma função nesta celebração. Ajuste as atribuições antes de alterar os horários.',409);$seen[$user]=true;
-                            $sql='SELECT s.id FROM '.self::table('slots').' s JOIN '.self::table('events')." e ON e.id=s.event_id WHERE s.assigned_id=%d AND s.status IN ('pending','confirmed') AND e.status='published' AND e.arrival<%s AND e.ends>%s AND e.id NOT IN (".implode(',',array_fill(0,count($ids),'%d')).') LIMIT 1';
-                            self::require_that(!$wpdb->get_var($wpdb->prepare($sql,array_merge([$user,$data['ends'],$data['arrival']],$ids))),'Conflito de horário: '.self::name($user).'. Nenhuma equipe foi alterada.',409);
+                            if (!isset($checked[$user])) {
+                                self::require_that(!self::conflict($user,$data['arrival'],$data['ends'],0,$event['id'],$id),'Conflito com outro evento: '.self::name($user).'. Nenhuma equipe foi alterada.',409);
+                                $checked[$user]=true;
+                            }
                             self::update('slots',['status'=>self::can_serve($user)?'pending':'declined'],['id'=>$slot['id']]);
                         }
                         self::update('invites',['status'=>'cancelled'],['slot_id'=>$slot['id'],'status'=>'pending']);

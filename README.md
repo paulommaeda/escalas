@@ -33,6 +33,8 @@ Na edição de equipes, busque integrantes pelo nome e acumule as escolhas em **
 
 Para equipes como a Pastoral, escolha **Convocação por função pela liderança** no cadastro da equipe. Cadastre livremente as funções gerais (Pregação, Direção do culto, Ceia etc.), selecione-as na equipe e habilite os integrantes nas funções correspondentes. No evento, a liderança usa **Convocar integrante**; as vagas não aceitam voluntariado. A atribuição fica confirmada, com aviso à pessoa designada. A liderança pode alterar ou retirar convocações; indisponibilidade e troca pela mesma função continuam disponíveis. Alterar o formato da equipe vale para novas participações e preserva as datas publicadas.
 
+Uma pessoa pode exercer várias funções no mesmo evento, inclusive em equipes ou departamentos diferentes. Isso vale para convocações, escolhas de vagas, confirmações e trocas. Cada função mantém sua própria resposta; retirar uma convocação não retira as demais. Eventos distintos com horários sobrepostos continuam sendo tratados como conflito.
+
 As escalas avulsas antigas com mesmo nome, local, horários e situação são agrupadas automaticamente, sem substituir vagas, confirmações ou trocas. Modelos de celebração, equipes fixas e rodízio continuam disponíveis.
 
 ## Notificações no celular

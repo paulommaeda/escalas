@@ -66,9 +66,10 @@ act($admin,['action'=>'person_functions','id'=>$cv_three,'function_ids'=>[$cv_cu
 cv_delegate($ev_leadA,$cv_newSlot,$cv_three);
 check(cv_slot($cv_newSlot)['function_name']==='Acolhimento pastoral especial','new custom function can be added and assigned after event publication');
 cv_delegate($ev_leadA,$cv_direct,$cv_three,400);
-// Conflicting participation is rejected regardless of the directed mode.
+// Multiple functions within the same event can be assigned to the same person.
 cv_delegate($ev_leadA,$cv_direct,$cv_two);
-cv_delegate($ev_leadA,$cv_preach,$cv_two,409);
+cv_delegate($ev_leadA,$cv_preach,$cv_two);
+check((int)cv_slot($cv_preach)['assigned_id']===$cv_two && (int)cv_slot($cv_direct)['assigned_id']===$cv_two,'same person can be appointed to two functions in one event');
 act($ev_leadA,['action'=>'vacancies','id'=>$cv_event,'function_id'=>$cv_direction,'quantity'=>0],409);
 $cv_clear=['action'=>'clear_convocation','id'=>$cv_direct,'fingerprint'=>CCS::convocation_fingerprint($cv_direct),'confirm'=>true];
 act($cv_two,$cv_clear,403);act($s,$cv_clear,403);act($ev_leadA,array_merge($cv_clear,['confirm'=>false]),400);act($ev_leadA,array_merge($cv_clear,['fingerprint'=>'old']),409);

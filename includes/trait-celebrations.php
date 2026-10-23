@@ -17,7 +17,7 @@ trait CCS_Celebrations {
         $members=array_filter($wpdb->get_col($wpdb->prepare('SELECT user_id FROM '.self::table('members').' WHERE team_id=%d',$team)),[__CLASS__,'can_serve']);
         self::require_that(self::function_mode($mode) || count($members)>0,'A equipe '.self::team($team)['name'].' não tem integrantes ativos.',400);
         if ($mode==='roster') {
-            foreach ($members as $m) { self::require_that(!self::conflict($m,$data['arrival'],$data['ends']),'Conflito de horário: '.self::name($m).'. Nenhuma alteração deste envio foi salva.',409); }
+            foreach ($members as $m) { self::require_that(!self::conflict($m,$data['arrival'],$data['ends'],0,0,$occurrence),'Conflito de horário: '.self::name($m).'. Nenhuma alteração deste envio foi salva.',409); }
         }
         if ($occurrence) { $data['notes']=''; }
         $event=self::insert('events',array_merge($data,['team_id'=>$team,'mode'=>$mode,'occurrence_id'=>$occurrence,'status'=>'published','created_by'=>get_current_user_id()]));
@@ -126,7 +126,7 @@ trait CCS_Celebrations {
             self::require_that(in_array($s['mode'],['open','functions'],true) && self::is_member($s['team_id'],$uid),'Somente integrantes desta equipe podem escolher a vaga.',403);
             if ($s['mode']==='functions') { self::require_that(self::qualified($s['team_id'],$s['function_id'],$uid),'Você precisa estar cadastrado nesta função da equipe.',403); }
             self::require_that($s['status']==='available' && !(int)$s['assigned_id'],'Esta vaga já foi escolhida. Atualize a lista.',409);
-            self::require_that(!self::conflict($uid,$s['arrival'],$s['ends'],$id),'Você já tem uma escala nesse horário.',409);
+            self::require_that(!self::conflict($uid,$s['arrival'],$s['ends'],$id,$s['event_id'],$s['occurrence_id']),'Você já tem participação em outro evento neste horário.',409);
             self::update('slots',['assigned_id'=>$uid,'original_id'=>$uid,'status'=>'confirmed'],['id'=>$id]);
             self::audit('slot_claimed',$s['event_id'],'slot='.$id);
             return 'Vaga escolhida e participação confirmada.';

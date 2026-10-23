@@ -148,7 +148,7 @@ trait CCS_Functions {
             if ($directed) { self::check_convocation($s,$a); }
             else { self::require_that($s['status']==='available' && !(int)$s['assigned_id'],'Esta vaga já foi preenchida. Atualize a lista.',409); }
             $to=absint($a['to_id']??0); self::require_that(self::qualified($s['team_id'],$s['function_id'],$to),'Escolha um integrante cadastrado nesta função.',400);
-            self::require_that(!self::conflict($to,$s['arrival'],$s['ends'],$id),'A pessoa já está escalada neste horário.',409);
+            self::require_that(!self::conflict($to,$s['arrival'],$s['ends'],$id,$s['event_id'],$s['occurrence_id']),'A pessoa já está escalada em outro evento neste horário.',409);
             if ($directed && (int)$s['assigned_id']===$to && $s['status']==='confirmed') { return 'Esta pessoa já está convocada e confirmada nesta função.'; }
             self::update('slots',['original_id'=>$to,'assigned_id'=>$to,'status'=>'confirmed'],['id'=>$id]);
             self::update('invites',['status'=>'cancelled'],['slot_id'=>$id,'status'=>'pending']);

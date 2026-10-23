@@ -1,3 +1,11 @@
+# Validação — versão 0.14.1
+
+`tests/multiple-functions.php` exercita a política de múltiplas atribuições via REST em WordPress/MySQL: convocação e voluntariado em duas funções da mesma equipe, participação em outras equipes/departamentos do evento, entrada de equipe inteira com integrante já designado, confirmação independente de cada função, alteração de horários com todas as atribuições e substituição por alguém que já participa do evento. Mantém recusas para convocar, escolher vaga, confirmar, convidar, aceitar substituição ou publicar equipe inteira em outro evento sobreposto. Verifica transação sem alterações parciais ao falhar uma mudança de horário, intervalos que apenas se encostam e escalas avulsas com occurrence_id=0 sem liberar conflitos entre registros distintos.
+
+O teste de convocações foi atualizado para permitir a mesma pessoa em duas funções. No navegador, a liderança convoca a mesma pessoa para Pregação e Direção do culto e retira somente uma dessas convocações, preservando a outra. As permissões e os controles de concorrência continuam sendo exercitados pelo restante do workflow.
+
+Publicação condicionada à aprovação completa dos testes: https://github.com/paulommaeda/escalas/actions. As limitações anteriores seguem documentadas abaixo.
+
 # Validação — versão 0.14.0
 
 `tests/convocations.php` integra WordPress/MySQL via REST: equipe em formato dirigido com múltiplas funções gerais, necessidades sem convocar todos, ausência de voluntariado para integrante/pastor/administrador, recusa de chamada direta à API, delegação pelo líder sem acesso à Gestão, habilitação e vínculo exigidos, conflitos de horário, chamadas sem token ou desatualizadas, confirmação e aviso individual, reatribuição com cancelamento de convites, retirada confirmada, redução de vagas, função livre acrescentada após a publicação, inativação e aviso ao líder, substituição aceita e nova confirmação preservando o substituto ao mudar horários. Verifica também os formatos preservados nas datas publicadas ao mudar o padrão da equipe.

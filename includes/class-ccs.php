@@ -198,9 +198,20 @@ final class CCS {
         self::require_that($d && $d->format('Y-m-d\TH:i')===$value,'Data ou horário inválido.',400);
         return $d;
     }
-    public static function conflict($user,$arrival,$end,$except=0,$except_event=0) {
+    public static function conflict($user,$arrival,$end,$except=0,$except_event=0,$occurrence=0) {
         global $wpdb;
-        return (bool)$wpdb->get_var($wpdb->prepare('SELECT s.id FROM '.self::table('slots').' s JOIN '.self::table('events')." e ON e.id=s.event_id WHERE s.assigned_id=%d AND s.id<>%d AND e.id<>%d AND s.status IN ('pending','confirmed') AND e.status='published' AND e.arrival<%s AND e.ends>%s LIMIT 1",$user,$except,$except_event,$end,$arrival));
+        // Several assignments in the same concrete event are allowed. A legacy schedule
+        // without an occurrence shares only its own slots, never every occurrence_id=0.
+        if ($except && !$except_event) {
+            $context=$wpdb->get_row($wpdb->prepare('SELECT e.id,e.occurrence_id FROM '.self::table('slots').' s JOIN '.self::table('events').' e ON e.id=s.event_id WHERE s.id=%d',$except),ARRAY_A);
+            if ($context) { $except_event=(int)$context['id'];$occurrence=$occurrence?:(int)$context['occurrence_id']; }
+        } elseif ($except_event && !$occurrence) {
+            $occurrence=(int)$wpdb->get_var($wpdb->prepare('SELECT occurrence_id FROM '.self::table('events').' WHERE id=%d',$except_event));
+        }
+        $sql='SELECT s.id FROM '.self::table('slots').' s JOIN '.self::table('events')." e ON e.id=s.event_id WHERE s.assigned_id=%d AND s.id<>%d AND e.id<>%d AND s.status IN ('pending','confirmed') AND e.status='published' AND e.arrival<%s AND e.ends>%s";
+        $args=[$user,$except,$except_event,$end,$arrival];
+        if ($occurrence) { $sql.=' AND e.occurrence_id<>%d';$args[]=$occurrence; }
+        return (bool)$wpdb->get_var($wpdb->prepare($sql.' LIMIT 1',$args));
     }
     public static function slot($id) {
         global $wpdb;
@@ -343,7 +354,7 @@ final class CCS {
         case 'respond':
             $s=self::slot($id); self::require_that((int)$s['assigned_id']===$uid);
             $status=$a['status']??''; self::require_that(in_array($status,['confirmed','declined'],true),'Resposta inválida.',400);
-            if ($status==='confirmed') { self::require_that(!self::conflict($uid,$s['arrival'],$s['ends'],$id),'Você já tem outra escala neste horário.',409); }
+            if ($status==='confirmed') { self::require_that(!self::conflict($uid,$s['arrival'],$s['ends'],$id,$s['event_id'],$s['occurrence_id']),'Você já tem participação em outro evento neste horário.',409); }
             self::update('slots',['status'=>$status],['id'=>$id]);
             self::update('invites',['status'=>'cancelled'],['slot_id'=>$id,'status'=>'pending']);
             $audit=self::audit('response_'.$status,$s['event_id'],'slot='.$id);
@@ -353,7 +364,7 @@ final class CCS {
             $s=self::slot($id); self::require_that((int)$s['assigned_id']===$uid && $s['status']==='declined');
             $to=absint($a['to_id']??0); self::require_that($to!==$uid && self::can_serve($to),'Selecione outro voluntário ativo.',400);
             if ((int)$s['function_id']) { self::require_that(self::has_function($s['function_id'],$to),'Escolha um voluntário da mesma função.',400); }
-            self::require_that(!self::conflict($to,$s['arrival'],$s['ends']),'Este voluntário já está escalado nesse horário.',409);
+            self::require_that(!self::conflict($to,$s['arrival'],$s['ends'],$id,$s['event_id'],$s['occurrence_id']),'Este voluntário já está escalado em outro evento neste horário.',409);
             self::update('invites',['status'=>'cancelled'],['slot_id'=>$id,'status'=>'pending']);
             $invite=self::insert('invites',['slot_id'=>$id,'from_id'=>$uid,'to_id'=>$to,'status'=>'pending','created_at'=>current_time('mysql',true)]);
             self::audit('replacement_invited',$s['event_id'],'slot='.$id.';to='.$to);
@@ -367,7 +378,7 @@ final class CCS {
             $accept=($a['accept']??false)===true;
             if ($accept) {
                 if ((int)$s['function_id']) { self::require_that(self::has_function($s['function_id'],$uid),'Você precisa ter esta função no seu perfil para aceitar.',409); }
-                self::require_that(!self::conflict($uid,$s['arrival'],$s['ends'],$s['id']),'Você já está escalado neste horário.',409);
+                self::require_that(!self::conflict($uid,$s['arrival'],$s['ends'],$s['id'],$s['event_id'],$s['occurrence_id']),'Você já está escalado em outro evento neste horário.',409);
                 self::update('slots',['assigned_id'=>$uid,'status'=>'confirmed'],['id'=>$s['id']]);
             }
             self::update('invites',['status'=>$accept?'accepted':'declined'],['id'=>$id]);
