@@ -2,7 +2,7 @@
 Contributors: ccshalom
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 0.14.1
+Stable tag: 0.14.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,13 @@ Cadastro de voluntários, celebrações, equipes e vagas por função.
 Guia completo: docs/GUIA-DE-INSTALACAO.md.
 
 == Changelog ==
+= 0.14.2 =
+Celebrações e eventos selecionam departamentos sem exigir uma quantidade de equipes.
+Lideranças podem incluir outras equipes mesmo quando o departamento já está participando.
+Seleção de equipes sem o antigo limite de 30, inclusive em modelos e datas já cadastrados.
+Painel mostra equipes com data assumida e departamentos aguardando equipe, sem metas numéricas.
+Equipes fixas, rodízio, permissões, confirmações e proteção contra edições simultâneas preservados.
+
 = 0.14.1 =
 Uma pessoa pode ocupar várias funções no mesmo evento, inclusive em equipes e departamentos diferentes.
 Regra aplicada a convocações, escolha de vagas, confirmações, equipes inteiras e substituições.

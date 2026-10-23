@@ -32,5 +32,13 @@ assert.deepEqual(JSON.parse(JSON.stringify(views.dashboardData().metrics)),{even
 ctx.dashboardFilter.department='21';assert.equal(views.dashboardData().rows.length,0);ctx.dashboardFilter.department='';
 state=fixture('secretary');assert.equal(views.dashboardData().metrics.events,1);
 state=fixture();assert.equal(views.dashboardData().rows.length,0);
+// Historical quantities no longer create targets or hide additional team opportunities.
+state=fixture('admin');state.occurrences[0].requirements[0].team_count=99;
+assert.equal(views.dashboardData().metrics.teams,1);assert.equal(views.eventDashboardData(50).metrics.missing,1);
+views.details(50);assert(!modal.includes('/99 equipes'));assert(!modal.includes('/1 equipes'));assert(modal.includes('1 equipe(s) com data assumida'));
+state.occurrences[0].requirements[0].missing_team=true;
+assert.equal(views.eventDashboardData(50).metrics.missing,2,'server still reports a missing fixed team independently of numeric targets');
+state=fixture('leader');state.occurrences[0].requirements[0].claimable_teams=[{id:13,name:'Música 2'}];
+views.details(50);assert(modal.includes('data-action="claim_event_team" data-id="50:13"'));assert(!state.occurrences[0].requirements[0].missing_team);
 console.log('PASS painel: filtros, cancelamentos, recusas, opcionais, histórico e escopo de departamento');
 views.notificationModal().then(()=>{assert(modal.includes('Confira sua participação'));assert(modal.includes('data-action="notice_open"'));console.log('PASS evento único, programa completo, permissões visuais e sino');}).catch(e=>{console.error(e);process.exitCode=1});

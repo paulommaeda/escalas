@@ -64,7 +64,12 @@ trait CCS_Celebrations {
             self::notify_people($ids,'team_cancelled','Participação da equipe cancelada',$event['title'].'. Confira o evento para acompanhar as outras participações.',$event['occurrence_id'],$id,'cancel:'.$audit);
             if ($department_notice) {
                 $team=self::team($event['team_id']);
-                self::notify_department($team['department_id'],'department_pending','Departamento com participação pendente',$team['name'].' liberou a participação em '.$event['title'].'.',$event['occurrence_id'],$id,'pending:'.$audit);
+                $pending=true;
+                if ((int)$event['occurrence_id']) {
+                    $o=self::occurrence($event['occurrence_id']);$rule=self::event_rule($o,$team['department_id']);
+                    $pending=self::department_awaits_team($rule,self::occurrence_team_events($o['id'],$team['department_id']));
+                }
+                self::notify_department($team['department_id'],$pending?'department_pending':'team_released',$pending?'Departamento com participação pendente':'Participação da equipe liberada',$team['name'].' liberou a participação em '.$event['title'].'.',$event['occurrence_id'],$id,'released:'.$audit);
             }
         }
     }
@@ -108,7 +113,7 @@ trait CCS_Celebrations {
                 if ($r['policy']==='rotation') { $ids=[$r['team_ids'][((int)$r['cursor']+$i)%count($r['team_ids'])]]; }
                 $key=$i.':'.$r['department_id']; if (array_key_exists($key,$overrides)) { $ids=$overrides[$key]; }
                 self::validate_rule_teams($r['department_id'],$ids);
-                if (isset($r['team_count'])) { self::require_that(count($ids)<=$r['team_count'],'A seleção supera a quantidade de equipes prevista para este departamento.',409); }
+                unset($r['team_count']);
                 $r['selected_team_ids']=$ids;
                 $r['department_name']=$wpdb->get_var($wpdb->prepare('SELECT name FROM '.self::table('departments').' WHERE id=%d',$r['department_id']));
                 $rules[]=$r;
@@ -148,13 +153,11 @@ trait CCS_Celebrations {
                 $ids=self::ids($r['team_ids']??[]); self::validate_rule_teams($dep,$ids);
                 if (in_array($policy,['manual','claim'],true)) { $ids=[]; }
                 self::require_that(in_array($policy,['manual','claim'],true) || count($ids)>0,'Escolha as equipes fixas ou a ordem do rodízio.',400);
-                $team_count=$policy==='fixed'?count($ids):($policy==='rotation'?1:absint($r['team_count']??1));
-                self::require_that($team_count>=1 && $team_count<=30,'Informe de 1 a 30 equipes por departamento.',400);
                 $cursor=0;
                 foreach (($old['rules']??[]) as $previous) {
                     if ((int)$previous['department_id']===$dep && $previous['policy']===$policy && $previous['team_ids']===$ids) { $cursor=(int)$previous['cursor']; }
                 }
-                $rules[]=['department_id'=>$dep,'required'=>!empty($r['required']),'policy'=>$policy,'team_ids'=>$ids,'cursor'=>$cursor,'team_count'=>$team_count];
+                $rules[]=['department_id'=>$dep,'required'=>!empty($r['required']),'policy'=>$policy,'team_ids'=>$ids,'cursor'=>$cursor];
             }
             $time=$a['starts_time']??'';$end=$a['ends_time']??'';
             foreach ([$time,$end] as $t) { self::require_that(is_string($t) && preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/',$t),'Informe horários válidos.',400); }
@@ -190,9 +193,7 @@ trait CCS_Celebrations {
             self::require_that(self::manages_department($dep));
             self::require_that($o['status']==='published' && $o['starts']>current_time('mysql'),'Esta celebração foi cancelada ou já começou.',409);
             self::require_that(in_array($dep,array_map(fn($r)=>(int)$r['department_id'],$o['rules_snapshot']),true),'Este departamento não está previsto nesta celebração.',400);
-            $ids=self::ids($a['team_ids']??[]); self::require_that(count($ids)<=30,'Selecione até 30 equipes.',400); self::validate_rule_teams($dep,$ids);
-            $rule=self::event_rule($o,$dep);
-            if (isset($rule['team_count'])) { self::require_that(count($ids)<=$rule['team_count'],'A seleção supera a quantidade de equipes prevista para este departamento.',409); }
+            $ids=self::ids($a['team_ids']??[]); self::validate_rule_teams($dep,$ids);
             $events=$wpdb->get_results($wpdb->prepare('SELECT e.* FROM '.self::table('events').' e JOIN '.self::table('teams')." t ON t.id=e.team_id WHERE e.occurrence_id=%d AND t.department_id=%d AND e.status='published'",$id,$dep),ARRAY_A);
             // Optimistic guard: don't silently cancel a newly chosen volunteer or edited team assignment.
             $fingerprint=self::assignment_fingerprint($id,$dep);

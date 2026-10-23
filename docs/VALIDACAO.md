@@ -1,3 +1,11 @@
+# Validação — versão 0.14.2
+
+`tests/unlimited-teams.php` exercita os fluxos REST em WordPress/MySQL: publicar sem quantidade de equipes, ignorar limites antigos nos eventos já cadastrados, oferecer a data a outra liderança após a primeira equipe assumir, seleção de 31 equipes, preservação das confirmações existentes, controle de edições simultâneas, restrição ao departamento correto e Secretaria em consulta. Verifica também publicação com 31 equipes a partir de modelo antigo, configuração de 31 equipes fixas e pendência ao liberar uma equipe prevista. A saída de uma equipe não gera falsa pendência quando outro grupo continua participando em um departamento de escolha livre.
+
+`tests/events.cjs` verifica indicadores sem metas numéricas e opções de participação adicional. Em `tests/browser.cjs`, os formulários de celebração e evento são usados sem campos de quantidade, duas equipes são selecionadas e os dados enviados são conferidos. O formulário da celebração é verificado em telas de 360 e 390 pixels. As regressões existentes de rodízio, permissões, convocações, múltiplas funções, tarefas/Kanban, Portal Push, importação, atualizador e SMTP permanecem no workflow.
+
+Publicação condicionada à aprovação completa dos testes: https://github.com/paulommaeda/escalas/actions.
+
 # Validação — versão 0.14.1
 
 `tests/multiple-functions.php` exercita a política de múltiplas atribuições via REST em WordPress/MySQL: convocação e voluntariado em duas funções da mesma equipe, participação em outras equipes/departamentos do evento, entrada de equipe inteira com integrante já designado, confirmação independente de cada função, alteração de horários com todas as atribuições e substituição por alguém que já participa do evento. Mantém recusas para convocar, escolher vaga, confirmar, convidar, aceitar substituição ou publicar equipe inteira em outro evento sobreposto. Verifica transação sem alterações parciais ao falhar uma mudança de horário, intervalos que apenas se encostam e escalas avulsas com occurrence_id=0 sem liberar conflitos entre registros distintos.

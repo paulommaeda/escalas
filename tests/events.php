@@ -61,7 +61,8 @@ act($s,['action'=>'claim_event_team','id'=>$ev_root,'team_id'=>$ev_teamC],403);
 act($ev_leadA,['action'=>'claim_event_team','id'=>$ev_root,'team_id'=>$ev_teamA]);$ev_childA=ev_child($ev_root,$ev_teamA);$ev_slotsA=ev_slots($ev_childA);
 check(count($ev_slotsA)===2 && $ev_slotsA[0]['status']==='available' && $ev_slotsA[1]['status']==='available','functions mode creates team function vacancies');
 act($ev_leadA,['action'=>'claim_event_team','id'=>$ev_root,'team_id'=>$ev_teamA]);check(count(ev_slots($ev_childA))===2,'repeated team claim is idempotent');
-act($ev_leadB,['action'=>'claim_event_team','id'=>$ev_root,'team_id'=>$ev_teamB],409);
+[$cl_state,$cl_event]=ev_visible_occurrence($ev_leadB,$ev_root);
+check(!$cl_event['requirements'][0]['missing_team'] && array_map('intval',array_column($cl_event['requirements'][0]['claimable_teams'],'id'))===[$ev_teamB],'another team may assume a department already participating');
 act($ev_leadC,['action'=>'claim_event_team','id'=>$ev_root,'team_id'=>$ev_teamC]);$ev_childC=ev_child($ev_root,$ev_teamC);$ev_slotC=ev_slots($ev_childC)[0];
 check($ev_slotC['status']==='pending' && (int)$ev_slotC['assigned_id']===$ev_c,'roster mode calls all active team members');
 act($ev_c,['action'=>'respond','id'=>$ev_slotC['id'],'status'=>'confirmed']);
@@ -112,10 +113,12 @@ act($ev_leadB,['action'=>'claim_event_team','id'=>$ev_root,'team_id'=>$ev_teamB]
 check(count(ev_slots($ev_childB))===1 && ev_slots($ev_childB)[0]['status']==='available','appointed volunteer leader can assume open mode without management access');
 wp_set_current_user($ev_leadB);check(!CCS::management_access(),'appointed volunteer leader still cannot see management');
 act($ev_b,['action'=>'claim','id'=>ev_slots($ev_childB)[0]['id']]);
-// Capacity and optimistic department edits preserve teams left in the selection.
+// Unlimited team participation and optimistic department edits preserve existing assignments.
 act($admin,ev_edit($ev_root,['requirements'=>[['department_id'=>$ev_depA,'team_count'=>2],['department_id'=>$ev_depB,'team_count'=>1]]]));
+$ev_staleEdit=ev_edit($ev_root,['requirements'=>$ev_rules]);
 act($ev_leadA,['action'=>'claim_event_team','id'=>$ev_root,'team_id'=>$ev_teamA]);$ev_newA=ev_child($ev_root,$ev_teamA);
-act($admin,ev_edit($ev_root,['requirements'=>$ev_rules]),409);
+act($admin,$ev_staleEdit,409);
+act($admin,ev_edit($ev_root,['requirements'=>$ev_rules]));
 wp_set_current_user($d);$ev_o=array_values(array_filter(CCS::state()['occurrences'],fn($o)=>(int)$o['id']===(int)$ev_root))[0];$ev_r=array_values(array_filter($ev_o['requirements'],fn($r)=>(int)$r['department_id']===$ev_depA))[0];
 act($d,['action'=>'assign_occurrence','id'=>$ev_root,'department_id'=>$ev_depA,'team_ids'=>[$ev_teamB],'fingerprint'=>$ev_r['fingerprint']]);
 check(ev_child($ev_root,$ev_teamB)===$ev_childB && ev_slots($ev_childB)[0]['status']==='confirmed','department selection preserves unchanged participation and confirmation');

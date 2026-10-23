@@ -1,12 +1,12 @@
-## CCShalom Escalas 0.14.1
+## CCShalom Escalas 0.14.2
 
-- A mesma pessoa pode ocupar várias funções no mesmo evento, como Abrir, Pregação e Fechar, inclusive em equipes e departamentos diferentes.
-- A regra vale para convocações pela liderança, escolha de vagas, confirmações, equipes inteiras e substituições aceitas.
-- Cada função mantém sua própria situação. Retirar ou declinar uma convocação não remove as outras participações.
-- Alterar os horários do evento mantém as pessoas designadas e solicita nova confirmação para todas as suas atribuições.
-- Eventos distintos com horários sobrepostos continuam bloqueados. A verificação considera a chegada das equipes; horários que apenas se encostam são permitidos.
-- Escalas avulsas antigas permitem múltiplas funções no próprio registro, sem eliminar conflitos com outras escalas.
+- Removido o campo de quantidade de equipes necessárias nos cadastros de celebrações e na publicação/edição de eventos.
+- Cada departamento pode receber quantas equipes forem necessárias, por escolha da gestão ou pela participação de seus líderes.
+- Uma equipe já participante não impede outras equipes do mesmo departamento de assumir a data.
+- Removidos os limites anteriores de seleção, inclusive em modelos e eventos já cadastrados.
+- O painel mostra equipes com data assumida e departamentos aguardando equipe, sem metas numéricas.
+- Mantidos os formatos de convocação, equipes fixas, rodízio, permissões, confirmações existentes e proteção contra edições simultâneas.
 
-Atualize em **Escalas → Atualizações → Verificar agora**. Não é necessário recriar equipes, funções ou eventos existentes.
+Atualize em **Escalas → Atualizações → Verificar agora**. Celebrações e datas existentes utilizam o novo comportamento sem precisar ser recriadas.
 
-O workflow valida os fluxos em WordPress/MySQL e a convocação da mesma pessoa em duas funções no navegador mobile, além das regressões de permissões, tarefas/Kanban, Portal Push, importação, atualizador e SMTP.
+O workflow valida os fluxos em WordPress/MySQL, incluindo 31 equipes no mesmo departamento, compatibilidade com limites antigos, prévia/publicação de celebrações, permissões e confirmações preservadas. Os formulários e a escolha de várias equipes também são verificados em navegador mobile.

@@ -53,7 +53,11 @@ trait CCS_Notifications {
     }
     public static function notify_event_published($id) {
         $o=self::occurrence($id);$ids=[];
-        foreach ($o['rules_snapshot'] as $rule) { if (count(self::occurrence_team_events($id,$rule['department_id']))<self::requirement_count($rule)) { $ids=array_merge($ids,self::department_recipients($rule['department_id'])); } }
+        foreach ($o['rules_snapshot'] as $rule) {
+            if (in_array($rule['policy']??'claim',['claim','manual'],true) || self::department_awaits_team($rule,self::occurrence_team_events($id,$rule['department_id']))) {
+                $ids=array_merge($ids,self::department_recipients($rule['department_id']));
+            }
+        }
         self::notify_people($ids,'event_published','Evento disponível para sua equipe',$o['title'].' · '.mysql2date('d/m/Y H:i',$o['starts']).'. Confira a participação do seu departamento neste evento.',$id,0,'published:'.$id);
     }
     public static function notify_team_publication($event,$audit) {

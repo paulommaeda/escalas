@@ -16,13 +16,14 @@ trait CCS_Events {
         $rules=[];$seen=[];
         foreach ($items as $item) {
             self::require_that(is_array($item),'Departamento inválido.',400);
-            $dep=absint($item['department_id']??0);$count=absint($item['team_count']??1);
+            $dep=absint($item['department_id']??0);
             self::require_active('departments',$dep);
             self::require_that(self::manages_department($dep));
-            self::require_that(!isset($seen[$dep]) && $count>=1 && $count<=30,'Confira os departamentos e a quantidade de equipes necessárias.',400);
+            self::require_that(!isset($seen[$dep]),'Não repita departamentos no evento.',400);
             $seen[$dep]=true;
-            $rule=['department_id'=>$dep,'required'=>true,'policy'=>'claim','team_count'=>$count,'team_ids'=>[],'selected_team_ids'=>[],'cursor'=>0];
-            foreach ($previous as $old) { if ((int)$old['department_id']===$dep && self::requirement_count($old)===$count) { $rule=array_merge($old,['team_count'=>$count]);break; } }
+            $rule=['department_id'=>$dep,'required'=>true,'policy'=>'claim','team_ids'=>[],'selected_team_ids'=>[],'cursor'=>0];
+            foreach ($previous as $old) { if ((int)$old['department_id']===$dep) { $rule=$old;break; } }
+            unset($rule['team_count']); // Older records may still carry the retired capacity field.
             $rules[]=$rule;
         }
         return $rules;
@@ -31,8 +32,13 @@ trait CCS_Events {
         foreach ($o['rules_snapshot'] as $rule) { if ((int)$rule['department_id']===(int)$department) { return $rule; } }
         self::fail('Este departamento não foi convocado para o evento.',403);
     }
-    private static function requirement_count($rule) {
-        return max(1,(int)($rule['team_count']??count($rule['selected_team_ids']??$rule['team_ids']??[])));
+    private static function department_awaits_team($rule,$events) {
+        $assigned=array_map('intval',array_column(array_filter($events,fn($ev)=>$ev['status']==='published'),'team_id'));
+        if (!$assigned) { return true; }
+        if (in_array($rule['policy']??'claim',['fixed','rotation'],true)) {
+            return (bool)array_diff(self::ids($rule['selected_team_ids']??$rule['team_ids']??[]),$assigned);
+        }
+        return false;
     }
     private static function occurrence_team_events($occurrence,$department) {
         global $wpdb;
@@ -61,7 +67,6 @@ trait CCS_Events {
         self::require_that(self::rule_allows_team($rule,$team['id']),'Esta data tem equipes fixas ou um rodízio já definido.',403);
         $current=self::occurrence_team_events($o['id'],$team['department_id']);
         foreach ($current as $row) { if ((int)$row['team_id']===(int)$team['id']) { return 'Sua equipe já assumiu esta data.'; } }
-        self::require_that(count($current)<self::requirement_count($rule),'As equipes necessárias deste departamento já foram definidas. Atualize o evento.',409);
         $data=array_intersect_key($o,array_flip(['title','location','arrival','starts','ends']));
         $data['notes']='';
         $event=self::create_event($team['id'],$data,$team['mode'],$o['id']);
@@ -76,8 +81,8 @@ trait CCS_Events {
         foreach ($teams as $id) {
             self::require_active('teams',$id);$team=self::team($id);self::require_that(self::manages_team($id));
             $dep=(int)$team['department_id'];
-            if (!isset($rules[$dep])) { $rules[$dep]=['department_id'=>$dep,'required'=>true,'policy'=>'fixed','team_ids'=>[],'selected_team_ids'=>[],'team_count'=>0]; }
-            $rules[$dep]['team_ids'][]=$id;$rules[$dep]['selected_team_ids'][]=$id;$rules[$dep]['team_count']++;
+            if (!isset($rules[$dep])) { $rules[$dep]=['department_id'=>$dep,'required'=>true,'policy'=>'fixed','team_ids'=>[],'selected_team_ids'=>[]]; }
+            $rules[$dep]['team_ids'][]=$id;$rules[$dep]['selected_team_ids'][]=$id;
         }
         $start=self::datetime($a['starts']??'');$end=self::datetime($a['ends']??'');$arrival=self::datetime($a['arrival']??'');
         self::require_that($arrival<=$start && $end>$start && $start>current_datetime(),'Confira as datas e horários.',400);
@@ -140,10 +145,10 @@ trait CCS_Events {
             $o['task_departments']=array_values(array_map(fn($r)=>(int)$r['department_id'],array_filter($rules,fn($r)=>self::manages_department($r['department_id']))));$o['can_edit']=$o['can_manage'] && $future;
             $o['fingerprint']=self::occurrence_fingerprint($o['id']);
             foreach ($rules as $r) {
-                $dep=(int)$r['department_id'];$r['team_count']=self::requirement_count($r);
+                $dep=(int)$r['department_id'];unset($r['team_count']);
                 $r['department_name']=$wpdb->get_var($wpdb->prepare('SELECT name FROM '.self::table('departments').' WHERE id=%d',$dep))?:'Departamento';
                 $r['events']=array_values(array_filter($events,fn($ev)=>(int)$ev['occurrence_id']===(int)$o['id'] && (int)$ev['department_id']===$dep && ($o['status']==='published'?$ev['status']==='published':$ev['status']!=='deleted')));
-                $r['remaining_teams']=max(0,$r['team_count']-count($r['events']));$r['missing_team']=$r['remaining_teams']>0;
+                $r['missing_team']=self::department_awaits_team($r,$r['events']);
                 $r['can_assign']=$future && self::manages_department($dep);$r['claimable_teams']=[];$r['can_assume_department']=false;
                 $r['fingerprint']=self::assignment_fingerprint($o['id'],$dep);$r['uncovered']=0;$r['pending']=0;
                 foreach ($r['events'] as $ev) {
@@ -156,7 +161,7 @@ trait CCS_Events {
                 foreach ($wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('teams').' WHERE department_id=%d AND active=1',$dep),ARRAY_A) as $team) {
                     if (!(int)$team['is_department']) { $real_teams++; }
                     $assigned=array_filter($r['events'],fn($ev)=>(int)$ev['team_id']===(int)$team['id']);
-                    if ($future && $r['missing_team'] && !$assigned && self::can_assume_team($team['id']) && self::rule_allows_team($r,$team['id'])) {
+                    if ($future && !$assigned && self::can_assume_team($team['id']) && self::rule_allows_team($r,$team['id'])) {
                         $r['claimable_teams'][]=['id'=>$team['id'],'name'=>$team['name'],'mode'=>$team['mode'],'is_department'=>(bool)$team['is_department']];
                     }
                 }
@@ -182,8 +187,8 @@ trait CCS_Events {
                 foreach ($rows as $event) {
                     $team=self::team($event['team_id']);if (!$team) { continue; }
                     $dep=(int)$team['department_id'];
-                    if (!isset($rules[$dep])) { $rules[$dep]=['department_id'=>$dep,'required'=>true,'policy'=>'claim','team_count'=>0,'team_ids'=>[],'selected_team_ids'=>[]]; }
-                    if (!in_array((int)$team['id'],$rules[$dep]['team_ids'],true)) { $rules[$dep]['team_ids'][]=(int)$team['id'];$rules[$dep]['selected_team_ids'][]=(int)$team['id'];$rules[$dep]['team_count']++; }
+                    if (!isset($rules[$dep])) { $rules[$dep]=['department_id'=>$dep,'required'=>true,'policy'=>'claim','team_ids'=>[],'selected_team_ids'=>[]]; }
+                    if (!in_array((int)$team['id'],$rules[$dep]['team_ids'],true)) { $rules[$dep]['team_ids'][]=(int)$team['id'];$rules[$dep]['selected_team_ids'][]=(int)$team['id']; }
                 }
                 if (!$rules) { continue; }
                 $data=array_intersect_key($first,array_flip(['title','location','arrival','starts','ends','status']));

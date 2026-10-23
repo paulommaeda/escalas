@@ -25,7 +25,7 @@ Marque **Evento especial · tarefas e Kanban** ao publicar ou em **Configurar ta
 
 Na aba **Equipes**, os cartões mostram apenas nome, responsável, departamento e quantidade de integrantes. Toque no cartão para consultar as pessoas e funções ou usar as ferramentas de liderança disponíveis para sua conta.
 
-Em **Gestão → Publicar evento**, informe a data, os horários e os departamentos necessários, com a quantidade de equipes de cada um. Não é preciso convocar antecipadamente cada equipe. O líder abre o evento ou a aba **Equipes** e assume a participação com sua equipe.
+Em **Gestão → Publicar evento**, informe a data, os horários e os departamentos necessários. Cada departamento pode ter quantas equipes forem necessárias, sem informar uma quantidade prévia. Não é preciso convocar antecipadamente cada equipe. O líder abre o evento ou a aba **Equipes** e assume a participação com sua equipe, mesmo que outras equipes do departamento já tenham assumido. A gestão pode selecionar várias equipes de uma vez em **Definir equipes**.
 
 A convocação segue o padrão da equipe: **equipe inteira**, **vaga aberta para uma pessoa**, **vagas por função** ou **convocação por função pela liderança**. Todos os usuários ativos veem o evento completo, incluindo os demais departamentos e suas designações. Cada pessoa altera a própria participação; líderes atuam nas equipes/departamentos sob sua responsabilidade. A Secretaria continua somente em consulta.
 

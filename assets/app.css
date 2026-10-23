@@ -54,8 +54,7 @@ html.ccs-app-document{margin-top:0!important}body.ccs-standalone{margin:0;backgr
 .ccs-team-participation h4{color:var(--ccs-navy);margin:0 0 5px}
 .ccs-team-participation-heading>span{font-size:11px;color:var(--ccs-muted)}
 .ccs-team-tools{margin-top:14px}
-.ccs-event-department-choice{display:grid;grid-template-columns:minmax(0,1fr) 78px;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--ccs-line)}
-.ccs-event-department-choice .ccs-field{margin:0}
+.ccs-event-department-choice{display:block;padding:10px 0;border-bottom:1px solid var(--ccs-line)}
 .ccs-event-department-choice .ccs-check{overflow-wrap:anywhere;font-weight:600}
 .ccs-team-opportunities{margin-top:28px}
 .ccs-notification-unread{border-left:3px solid var(--ccs-blue);padding-left:12px;background:#f7f9ff}

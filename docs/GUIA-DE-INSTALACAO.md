@@ -1,4 +1,4 @@
-# CCShalom Escalas — 0.14.1
+# CCShalom Escalas — 0.14.2
 
 ## Atualização
 
@@ -90,11 +90,13 @@ As permissões de gestão existentes são preservadas: líder da equipe e gestor
 
 1. Cadastre os departamentos, seus líderes e as equipes, com líder e integrantes.
 2. Em cada equipe, escolha o formato: **Convocar equipe inteira**, **Vaga aberta · 1 pessoa**, **Vagas por função** ou **Convocação por função pela liderança**. Nos dois últimos formatos, selecione funções gerais e quantidades. Os voluntários escolhem suas funções no Perfil e a liderança pode atribuí-las.
-3. Em **Gestão → Publicar evento**, informe nome, local, chegada, início e término. Selecione os departamentos necessários e quantas equipes de cada um precisam participar. O padrão é uma equipe. Pode repetir a publicação em até 12 datas.
-4. Cada líder encontra o evento no **Início** ou em **Equipes → Datas disponíveis para assumir**. Abre **Ver evento completo**, escolhe **Assumir com [equipe]** e confirma. Só pode assumir as equipes em que é líder; o líder de departamento também pode definir as equipes de seu departamento.
+3. Em **Gestão → Publicar evento**, informe nome, local, chegada, início e término. Selecione os departamentos necessários. Cada um pode receber quantas equipes forem necessárias, sem definir uma quantidade prévia. Pode repetir a publicação em até 12 datas.
+4. Cada líder encontra o evento no **Início** ou em **Equipes → Datas disponíveis para assumir**. Abre **Ver evento completo**, escolhe **Assumir com [equipe]** e confirma. Só pode assumir as equipes em que é líder, inclusive quando outras equipes já participam. O líder de departamento também pode selecionar quantas equipes precisar de seu departamento.
 5. A participação é criada com o modo cadastrado da equipe. Equipe inteira convoca todos os integrantes ativos para confirmar. Vaga aberta permite que um integrante escolha a única vaga. Vagas por função permite escolhas por pessoas habilitadas ou delegação pelo líder, já confirmadas. Convocação por função pela liderança permite apenas designações pelos líderes e gestores autorizados, sem voluntariado.
 6. O aplicativo mostra um evento por data, incluindo todos os departamentos, equipes e pessoas designadas. A pessoa confirma, declina, assume ou troca suas próprias vagas. Ver outras participações não concede permissão de edição.
-7. Para tirar uma equipe, seu líder usa **Liberar participação da equipe**. Somente suas convocações e trocas pendentes são canceladas. O departamento volta a ter disponibilidade, preservando as demais equipes e o evento.
+7. Para tirar uma equipe, seu líder usa **Liberar participação da equipe**. Somente suas convocações e trocas pendentes são canceladas. As demais equipes e o evento são preservados. Um departamento com escolha livre só volta a ficar pendente quando está sem nenhuma equipe.
+
+Modelos e datas antigas também passam a aceitar equipes sem o limite anterior. Equipes fixas e rodízio mantêm suas seleções automáticas; na prévia e na gestão da data, você pode selecionar quantas equipes precisar. O painel informa o número de equipes com data assumida e os departamentos que ainda aguardam equipe, sem uma meta numérica.
 
 Exemplo: publique Domingo com Artes e Comunicação. O líder da Música 1 assume Artes; o líder da Transmissão assume Comunicação. Em vagas por função, o guitarrista e o tecladista escolhem suas vagas, ou o líder os designa. Todos veem esses nomes e funções no mesmo evento.
 
