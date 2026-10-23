@@ -145,7 +145,7 @@ final class CCS {
             $t['functions']=$visible?self::team_functions($t['id']):[];
             $t['can_manage']=self::manages_team($t['id']);
             $t['can_publish_open']=self::can_publish_team($t['id'],'open');
-            $t['can_assume']=self::leads_team($t['id']);
+            $t['can_assume']=self::can_assume_team($t['id']);
             $t['members']=$visible?array_map('intval', $wpdb->get_col($wpdb->prepare('SELECT user_id FROM '.self::table('members').' WHERE team_id=%d', $t['id']))):[];
             $teams[]=$t; $dept_ids[]=(int)$t['department_id'];
         }

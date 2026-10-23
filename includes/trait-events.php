@@ -56,7 +56,7 @@ trait CCS_Events {
     private static function join_occurrence($o,$team) {
         global $wpdb;
         self::require_that($o['status']==='published' && $o['starts']>current_time('mysql'),'Este evento foi cancelado ou já começou.',409);
-        self::require_active('teams',$team['id']);self::require_that(self::leads_team($team['id']));
+        self::require_active('teams',$team['id']);self::require_that(self::can_assume_team($team['id']),'Somente a liderança cadastrada desta equipe pode assumir sua participação.',403);
         $rule=self::event_rule($o,$team['department_id']);
         self::require_that(self::rule_allows_team($rule,$team['id']),'Esta data tem equipes fixas ou um rodízio já definido.',403);
         $current=self::occurrence_team_events($o['id'],$team['department_id']);
@@ -112,11 +112,11 @@ trait CCS_Events {
             return ['message'=>'Evento publicado. As lideranças já podem assumir as datas.','occurrence_ids'=>$created];
         case 'claim_event_team':
             $o=self::occurrence($id);$team=self::team(absint($a['team_id']??0));
-            self::require_that($team && self::leads_team($team['id']));
+            self::require_that($team && self::can_assume_team($team['id']),'Somente a liderança cadastrada desta equipe pode assumir sua participação.',403);
             return self::join_occurrence($o,$team);
         case 'claim_event_department':
             $o=self::occurrence($id);$dep=absint($a['department_id']??0);
-            self::require_that(self::manages_department($dep));self::event_rule($o,$dep);
+            self::require_that(self::is_department_leader($dep),'Somente a liderança cadastrada do departamento pode assumir sua participação direta.',403);self::event_rule($o,$dep);
             self::require_that(!$wpdb->get_var($wpdb->prepare('SELECT id FROM '.self::table('teams').' WHERE department_id=%d AND active=1 AND is_department=0 LIMIT 1',$dep)),'Este departamento tem equipes. A participação deve ser assumida por uma delas.',409);
             return self::join_occurrence($o,self::department_team($dep));
         case 'release_event_team':
@@ -152,11 +152,11 @@ trait CCS_Events {
                 foreach ($wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('teams').' WHERE department_id=%d AND active=1',$dep),ARRAY_A) as $team) {
                     if (!(int)$team['is_department']) { $real_teams++; }
                     $assigned=array_filter($r['events'],fn($ev)=>(int)$ev['team_id']===(int)$team['id']);
-                    if ($future && $r['missing_team'] && !$assigned && self::leads_team($team['id']) && self::rule_allows_team($r,$team['id'])) {
+                    if ($future && $r['missing_team'] && !$assigned && self::can_assume_team($team['id']) && self::rule_allows_team($r,$team['id'])) {
                         $r['claimable_teams'][]=['id'=>$team['id'],'name'=>$team['name'],'mode'=>$team['mode'],'is_department'=>(bool)$team['is_department']];
                     }
                 }
-                $r['can_assume_department']=$future && $r['missing_team'] && !$real_teams && self::manages_department($dep) && in_array($r['policy']??'manual',['claim','manual'],true) && !$r['claimable_teams'];
+                $r['can_assume_department']=$future && $r['missing_team'] && !$real_teams && self::is_department_leader($dep) && in_array($r['policy']??'manual',['claim','manual'],true) && !$r['claimable_teams'];
                 $o['requirements'][]=$r;
             }
             unset($o['rules_snapshot']);$list[]=$o;

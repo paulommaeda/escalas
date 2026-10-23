@@ -12,6 +12,10 @@ function ev_child($occ,$team) {
     global $wpdb;
     return (int)$wpdb->get_var($wpdb->prepare('SELECT id FROM '.CCS::table('events')." WHERE occurrence_id=%d AND team_id=%d AND status='published' ORDER BY id DESC LIMIT 1",$occ,$team));
 }
+function ev_visible_occurrence($uid,$id) {
+    wp_set_current_user($uid);$state=CCS::state();
+    return [$state,array_values(array_filter($state['occurrences'],fn($o)=>(int)$o['id']===(int)$id))[0]];
+}
 function ev_slots($event) { global $wpdb;return $wpdb->get_results($wpdb->prepare('SELECT * FROM '.CCS::table('slots')." WHERE event_id=%d AND status<>'withdrawn' ORDER BY id",$event),ARRAY_A); }
 function ev_edit($id,$extra=[]) {
     global $wpdb;$o=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.CCS::table('occurrences').' WHERE id=%d',$id),ARRAY_A);
@@ -32,6 +36,19 @@ act($ev_a,['action'=>'profile_functions','function_ids'=>[$fn]]);act($ev_b,['act
 $ev_rules=[['department_id'=>$ev_depA,'team_count'=>1],['department_id'=>$ev_depB,'team_count'=>1]];
 $ev_result=ev_publish($admin,'Evento unificado',$ev_rules);$ev_root=$ev_result['occurrence_ids'][0];
 check(!ev_child($ev_root,$ev_teamA) && !ev_child($ev_root,$ev_teamC),'publish event without creating team schedules');
+// Management access must not turn every team into a personal participation option.
+foreach ([$admin,$d,$p] as $cl_manager) {
+    [$cl_state,$cl_event]=ev_visible_occurrence($cl_manager,$ev_root);
+    check(!$cl_event['requirements'][0]['claimable_teams'] && !$cl_event['requirements'][1]['claimable_teams'],'manager without team leadership sees no assume-team options '.$cl_manager);
+    check($cl_event['requirements'][0]['can_assign'],'manager retains department assignment tools '.$cl_manager);
+    $cl_team=array_values(array_filter($cl_state['teams'],fn($t)=>(int)$t['id']===$ev_teamA))[0];
+    check(!$cl_team['can_assume'],'team permission flag excludes broad management access '.$cl_manager);
+    act($cl_manager,['action'=>'claim_event_team','id'=>$ev_root,'team_id'=>$ev_teamA],403);
+}
+[$cl_state,$cl_event]=ev_visible_occurrence($ev_leadA,$ev_root);
+check(array_map('intval',array_column($cl_event['requirements'][0]['claimable_teams'],'id'))===[$ev_teamA] && !$cl_event['requirements'][1]['claimable_teams'],'appointed team leader sees only their own team opportunity');
+update_user_meta($ev_leadA,'ccs_inactive','1');act($ev_leadA,['action'=>'claim_event_team','id'=>$ev_root,'team_id'=>$ev_teamA],403);delete_user_meta($ev_leadA,'ccs_inactive');
+
 check((int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM '.CCS::table('notifications')." WHERE occurrence_id=%d AND type='event_published' AND user_id IN (%d,%d,%d,%d,%d)",$ev_root,$d,$ev_deptB,$ev_leadA,$ev_leadB,$ev_leadC))===5,'only requested department leaders receive event publication');
 check(!(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM '.CCS::table('notifications').' WHERE occurrence_id=%d AND user_id=%d',$ev_root,$ev_out)),'outsider not sent leadership publication notice');
 ev_publish($admin,'Evento unificado',$ev_rules,70,409);
@@ -50,6 +67,14 @@ check($ev_slotC['status']==='pending' && (int)$ev_slotC['assigned_id']===$ev_c,'
 act($ev_c,['action'=>'respond','id'=>$ev_slotC['id'],'status'=>'confirmed']);
 $ev_bat=array_values(array_filter($ev_slotsA,fn($r)=>(int)$r['function_id']===(int)$fn))[0]['id'];
 $ev_key=array_values(array_filter($ev_slotsA,fn($r)=>(int)$r['function_id']===(int)$ev_fn))[0]['id'];
+[$cl_state]=ev_visible_occurrence($ev_a,$ev_root);
+$cl_slotPermissions=array_column($cl_state['slots'],'can_claim','id');
+check($cl_slotPermissions[$ev_bat] && !$cl_slotPermissions[$ev_key],'member sees only vacancies matching the function on their profile');
+[$cl_state]=ev_visible_occurrence($ev_out,$ev_root);check(!array_column($cl_state['slots'],'can_claim','id')[$ev_bat],'matching function without team membership does not expose claim action');
+act($ev_out,['action'=>'claim','id'=>$ev_bat],403);
+[$cl_state]=ev_visible_occurrence($admin,$ev_root);$cl_child=array_values(array_filter($cl_state['events'],fn($e)=>(int)$e['id']===$ev_childA))[0];
+check($cl_child['can_delegate'] && !array_column($cl_state['slots'],'can_claim','id')[$ev_bat],'administrator can delegate without receiving personal volunteer eligibility');
+
 act($ev_c,['action'=>'claim','id'=>$ev_bat],403);act($ev_b,['action'=>'claim','id'=>$ev_bat],403);
 act($ev_a,['action'=>'claim','id'=>$ev_bat]);act($ev_a,['action'=>'claim','id'=>$ev_bat],409);
 act($ev_leadC,['action'=>'delegate','id'=>$ev_key,'to_id'=>$ev_b],403);
@@ -98,6 +123,13 @@ act($d,['action'=>'assign_occurrence','id'=>$ev_root,'department_id'=>$ev_depA,'
 check(ev_child($ev_root,$ev_teamC)===$ev_childC,'department edit cannot alter another department');
 // Department without teams can participate directly.
 $ev_direct=ev_publish($admin,'Participação direta',[['department_id'=>$ev_depD,'team_count'=>1]],80)['occurrence_ids'][0];
+foreach ([$admin,$p] as $cl_manager) {
+    [$cl_state,$cl_event]=ev_visible_occurrence($cl_manager,$ev_direct);
+    check(!$cl_event['requirements'][0]['can_assume_department'] && $cl_event['requirements'][0]['can_assign'],'only actual department leadership gets personal direct-participation option '.$cl_manager);
+    act($cl_manager,['action'=>'claim_event_department','id'=>$ev_direct,'department_id'=>$ev_depD],403);
+}
+[$cl_state,$cl_event]=ev_visible_occurrence($ev_deptB,$ev_direct);check($cl_event['requirements'][0]['can_assume_department'],'appointed department leader may assume direct participation');
+
 act($d,['action'=>'claim_event_department','id'=>$ev_direct,'department_id'=>$ev_depD],403);
 act($ev_deptB,['action'=>'claim_event_department','id'=>$ev_direct,'department_id'=>$ev_depD]);$ev_implicit=latest('teams');
 check((int)CCS::team($ev_implicit)['is_department']===1 && count(ev_slots(ev_child($ev_direct,$ev_implicit)))===1,'department without teams receives direct open participation');
@@ -168,3 +200,23 @@ act($ev_leadA,['action'=>'claim_event_team','id'=>$ev_own,'team_id'=>$ev_teamA])
 wp_set_current_user($d);$ev_ownState=array_values(array_filter(CCS::state()['occurrences'],fn($o)=>(int)$o['id']===(int)$ev_own))[0];
 act($d,['action'=>'assign_occurrence','id'=>$ev_own,'department_id'=>$ev_depA,'team_ids'=>[$ev_teamB],'fingerprint'=>$ev_ownState['requirements'][0]['fingerprint']]);
 check(!(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM '.CCS::table('notifications')." WHERE occurrence_id=%d AND type='department_pending'",$ev_own)),'replacing a team without leaving vacancies does not issue a false department-pending notice');
+
+// Administrators retain participation when explicitly linked, with function checks applied normally.
+act($admin,['action'=>'profile_functions','function_ids'=>[]]);
+act($admin,['action'=>'team','name'=>'Equipe do administrador','department_id'=>$ev_depA,'leader_id'=>$admin,'mode'=>'functions','members'=>[$admin],'functions'=>[['id'=>$fn,'quantity'=>1]]]);$cl_adminTeam=latest('teams');
+$cl_adminRoot=ev_publish($admin,'Participação própria do administrador',[['department_id'=>$ev_depA,'team_count'=>1]],170)['occurrence_ids'][0];
+[$cl_state,$cl_event]=ev_visible_occurrence($admin,$cl_adminRoot);
+check(array_map('intval',array_column($cl_event['requirements'][0]['claimable_teams'],'id'))===[$cl_adminTeam],'administrator explicitly appointed team leader sees only that team');
+act($admin,['action'=>'claim_event_team','id'=>$cl_adminRoot,'team_id'=>$cl_adminTeam]);$cl_adminSlot=ev_slots(ev_child($cl_adminRoot,$cl_adminTeam))[0]['id'];
+act($admin,['action'=>'claim','id'=>$cl_adminSlot],403);
+act($admin,['action'=>'profile_functions','function_ids'=>[$fn]]);
+[$cl_state]=ev_visible_occurrence($admin,$cl_adminRoot);check(array_column($cl_state['slots'],'can_claim','id')[$cl_adminSlot],'administrator with membership and matching function can volunteer normally');
+act($admin,['action'=>'claim','id'=>$cl_adminSlot]);
+$cl_managedRoot=ev_publish($admin,'Designação pela gestão',[['department_id'=>$ev_depA,'team_count'=>1]],180)['occurrence_ids'][0];
+[$cl_state,$cl_event]=ev_visible_occurrence($admin,$cl_managedRoot);
+act($admin,['action'=>'assign_occurrence','id'=>$cl_managedRoot,'department_id'=>$ev_depA,'team_ids'=>[$ev_teamB],'fingerprint'=>$cl_event['requirements'][0]['fingerprint']]);
+check(ev_child($cl_managedRoot,$ev_teamB)>0,'administrator can still assign another team through the explicit management action');
+
+act($admin,['action'=>'team','id'=>$cl_adminTeam,'name'=>'Equipe do administrador','department_id'=>$ev_depA,'leader_id'=>$admin,'mode'=>'functions','members'=>[]]);
+check(!(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM '.CCS::table('members').' WHERE team_id=%d',$cl_adminTeam)),'saving an empty member selection clears the team membership');
+check((int)$wpdb->get_var($wpdb->prepare('SELECT assigned_id FROM '.CCS::table('slots').' WHERE id=%d',$cl_adminSlot))===(int)$admin,'member editing preserves assignments already published');

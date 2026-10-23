@@ -1,9 +1,22 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 trait CCS_Functions {
+    public static function is_team_leader($id,$user=null) {
+        $user=$user??get_current_user_id();$t=self::team($id);
+        return self::can_serve($user) && $t && !empty($t['active']) && (int)$t['leader_id']===(int)$user;
+    }
+    public static function is_department_leader($id,$user=null) {
+        global $wpdb;$user=$user??get_current_user_id();
+        return self::can_serve($user) && (bool)$wpdb->get_var($wpdb->prepare('SELECT id FROM '.self::table('departments').' WHERE id=%d AND active=1 AND leader_id=%d',$id,$user));
+    }
+    // Personal participation does not inherit permissions to manage other teams.
+    public static function can_assume_team($id) {
+        $t=self::team($id);
+        return $t && !empty($t['active']) && (!empty($t['is_department'])?self::is_department_leader($t['department_id']):self::is_team_leader($id));
+    }
     public static function leads_team($id) {
         $t=self::team($id);
-        return !self::secretary() && $t && !empty($t['active']) && (self::manages_team($id) || ((int)$t['leader_id']===get_current_user_id() && self::participant(get_current_user_id())));
+        return !self::secretary() && $t && !empty($t['active']) && (self::manages_team($id) || self::is_team_leader($id));
     }
     public static function can_catalog() {
         return self::management_access() && !self::secretary();

@@ -1,3 +1,11 @@
+# Validação — versão 0.11.2
+
+O workflow inclui regressões de permissão para o caso de administradores, pastores e líderes de departamento sem liderança da equipe: ausência de opções pessoais de assumir, manutenção da gestão e recusa REST de tentativa direta. Verifica o líder cadastrado, liderança inativa, participação direta de departamento, integrante habilitado em uma função, função incompatível e função compatível sem vínculo com a equipe. Administradores com vínculo explícito de liderança/membro e função continuam podendo participar normalmente.
+
+No navegador, o cadastro e a edição de equipes exercitam busca por nome sem acentos/caixa, seleção acumulada enquanto o filtro muda, remoção/reinclusão sem duplicatas, estado sem resultados, carregamento dos integrantes atuais, prevenção de envio acidental pela busca e o conteúdo enviado ao salvar, inclusive uma seleção vazia. O componente é verificado em 360 e 390 pixels, além dos cenários de eventos em 768 pixels. A integração WordPress confirma que esvaziar os membros não apaga designações publicadas.
+
+A release depende da aprovação do workflow completo, incluindo Portal Push, importação, atualizador e e-mails: https://github.com/paulommaeda/escalas/actions. As limitações de dispositivos físicos e de hospedagem registradas abaixo continuam aplicáveis.
+
 # Validação — versão 0.11.1
 
 O workflow valida sintaxe PHP/JavaScript e executa os testes abaixo antes de publicar a release. Execuções e resultados: https://github.com/paulommaeda/escalas/actions.

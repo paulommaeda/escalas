@@ -65,3 +65,20 @@ html.ccs-app-document{margin-top:0!important}body.ccs-standalone{margin:0;backgr
 #ccs-push-panel h2{font-size:19px}
 #ccs-push-panel input{max-width:100%}
 @media(min-width:700px){#ccs-app .ccs-unified-event{grid-template-columns:64px minmax(0,1fr)}.ccs-program-department li>span:first-child{flex-basis:34%}}
+
+/* Team members stay selected while the name search changes. */
+.ccs-member-selection{border:1px solid var(--ccs-line);border-radius:12px;background:#f6f8ff;padding:12px;margin:14px 0 16px;min-width:0}
+#ccs-app .ccs-member-selection h3{font-size:12px;margin:0 0 10px;letter-spacing:0}
+.ccs-member-chips{display:flex;flex-wrap:wrap;gap:8px;max-height:190px;overflow-y:auto;min-width:0}
+#ccs-app .ccs-member-chips>p{margin:0}
+.ccs-member-chip{display:flex;align-items:center;max-width:100%;gap:6px;border:1px solid #cbd5ff;border-radius:10px;background:#fff;color:var(--ccs-navy);padding-left:10px;font-size:12px}
+.ccs-member-chip>span{min-width:0;overflow-wrap:anywhere}
+.ccs-member-chip button{display:grid;place-items:center;border:0;background:transparent;min-width:44px;min-height:44px;color:var(--ccs-blue);font-size:22px!important;cursor:pointer;border-radius:9px;flex-shrink:0}
+.ccs-member-chip button:hover{background:#edf1ff}
+.ccs-member-results{max-height:260px;scrollbar-gutter:stable}
+#ccs-app .ccs-member-option{gap:12px;min-height:58px;border-bottom:1px solid #eef1f7;align-items:center}
+.ccs-member-option:last-child{border-bottom:0}
+.ccs-member-option-copy{display:flex;flex-direction:column;gap:3px;min-width:0;overflow-wrap:anywhere}
+.ccs-member-option-copy strong{font-weight:500;font-size:12px;line-height:1.5}
+.ccs-member-option-copy>span{font-size:11px;color:var(--ccs-muted)}
+#ccs-app .ccs-member-empty{padding:16px 4px;margin:0;font-size:12px}

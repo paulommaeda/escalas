@@ -1,4 +1,4 @@
-# CCShalom Escalas — 0.11.1
+# CCShalom Escalas — 0.11.2
 
 ## Atualização
 
@@ -58,6 +58,18 @@ Exemplo: publique Domingo com Artes e Comunicação. O líder da Música 1 assum
 Um departamento sem equipes pode usar **Assumir pelo departamento**. O sistema cria uma participação direta com uma vaga aberta e o líder como integrante inicial. O líder de departamento pode organizar integrantes, funções e formato em Equipes; essas configurações valem para participações futuras. Se o departamento já tiver equipes, a participação deve ser assumida por uma delas.
 
 Administrador/pastor publica envolvendo qualquer departamento. Líder de departamento publica envolvendo apenas os departamentos sob sua liderança. Alterar ou cancelar o evento inteiro exige administrar todos os seus departamentos; o líder de equipe continua restrito à sua equipe. Uma alteração de horário no evento pede nova confirmação aos participantes e invalida convites pendentes, preservando orientações específicas de cada equipe.
+
+## Selecionar integrantes pelo nome
+
+Ao cadastrar ou editar uma equipe, digite parte do nome em **Buscar integrante pelo nome**. A lista é filtrada enquanto você digita, ignorando acentos e maiúsculas. Ao selecionar alguém, o nome aparece em **Selecionados**, acima da busca, e permanece ali quando o filtro muda. Use **×** para retirar uma pessoa e continue pesquisando e adicionando. Pessoas já selecionadas não aparecem duplicadas nos resultados.
+
+Na edição, os integrantes atuais já aparecem selecionados. A lista é alterada no servidor somente ao salvar a equipe. Salvar sem selecionados remove os integrantes da equipe; as designações já publicadas permanecem preservadas. A seleção inclui apenas pessoas ativas que possam servir, mantendo Secretaria fora das opções.
+
+## Quem pode assumir
+
+**Assumir com [equipe]** depende do vínculo de líder no cadastro da equipe. O perfil de administrador, pastor ou líder de departamento, por si só, não libera essa opção para todas as equipes. Esses perfis continuam podendo designar equipes por **Definir equipes deste departamento**, conforme suas permissões de gestão.
+
+Em departamentos sem equipes, **Assumir pelo departamento** aparece para o líder cadastrado do departamento. Em vagas por função já publicadas, **Assumir esta vaga** exige que a pessoa seja integrante da equipe e tenha a função correspondente no perfil. Vagas abertas sem função continuam disponíveis aos integrantes da equipe. As regras são verificadas também na API.
 
 ## Modelos de celebração
 

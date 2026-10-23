@@ -2,7 +2,7 @@
 Contributors: ccshalom
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 0.11.1
+Stable tag: 0.11.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,13 @@ Cadastro de voluntários, celebrações, equipes e vagas por função.
 Guia completo: docs/GUIA-DE-INSTALACAO.md.
 
 == Changelog ==
+= 0.11.2 =
+Busca por nome ao adicionar integrantes; selecionados ficam no topo e permanecem ao mudar o filtro.
+Remoção da seleção antes de salvar e manutenção dos integrantes existentes na edição.
+Assumir uma equipe exige ser seu líder cadastrado; acesso de gestão não concede participação pessoal.
+Participação direta de departamento restrita ao líder cadastrado; vagas por função continuam exigindo vínculo e habilitação.
+Validação das permissões na API e testes da seleção de integrantes em telas móveis.
+
 = 0.11.1 =
 Aviso de atualização de equipes reflete a seleção final, sem sinalizar uma pendência temporária já resolvida.
 Mantém confirmações das equipes preservadas e os avisos individuais de cancelamento das equipes retiradas.

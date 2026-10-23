@@ -1,15 +1,12 @@
-## CCShalom Escalas 0.11.1
+## CCShalom Escalas 0.11.2
 
-- Ajusta o aviso de troca de equipes para refletir a seleção final, sem indicar uma pendência temporária já resolvida.
-- Publicação de um evento com data, horários, departamentos necessários e quantidade de equipes.
-- Líderes assumem a participação da própria equipe; a convocação usa seu formato: equipe inteira, vaga aberta ou vagas por função.
-- Início e Minhas escalas mostram um evento por data, com programação completa e designações de todos os departamentos.
-- Ações restritas à própria participação ou liderança. Secretaria permanece em consulta.
-- Modelos, equipes fixas e rodízio preservados. Departamentos sem equipes podem organizar participação direta.
-- Migração agrupa escalas avulsas equivalentes sem substituir IDs, confirmações, trocas ou histórico.
-- Sino com avisos e pedidos de troca, leitura individual e links diretos para o evento.
-- Integração com Portal Push 0.4.0+: envio individual após salvar, fila persistente, novas tentativas e deduplicação. Ativação do aparelho no Perfil usando o painel oficial do provedor.
+- Busca por nome no cadastro e edição de equipes, atualizando os resultados enquanto você digita. Ignora acentos e diferenças entre maiúsculas e minúsculas.
+- Integrantes selecionados permanecem no topo ao mudar o filtro. É possível remover uma seleção e continuar adicionando pessoas antes de salvar.
+- Edição carrega os integrantes atuais; o salvamento envia exatamente a seleção final, inclusive uma lista vazia.
+- “Assumir com [equipe]” aparece apenas para o líder cadastrado da equipe. Administrador, pastor e líder de departamento mantêm as ferramentas de gestão, sem receber todas as equipes como opções pessoais de participação.
+- “Assumir pelo departamento” exige o vínculo de líder do departamento. Vagas por função continuam disponíveis apenas a integrantes com a função correspondente.
+- As mesmas regras são verificadas pelo servidor. Mantidos os modos de convocação e as designações já publicadas.
 
-Atualize em **Escalas → Atualizações → Verificar agora**. Para push no celular, ative e configure o **Portal Push 0.4.0+ no mesmo WordPress** e autorize o aparelho no Perfil. Sem ele, os avisos continuam no sino. A entrega pelo navegador depende de HTTPS, permissão do dispositivo e funcionamento do WP-Cron.
+Atualize em **Escalas → Atualizações → Verificar agora**. Não é necessário refazer os vínculos ou as escalas existentes.
 
-Validação automatizada: integração WordPress/MySQL de publicação, modos de equipe, permissões, migração e notificações; API real do Portal Push sem dispositivos reais; interface mobile em Chromium; regressões de importação, atualizador e alteração de senha/SMTP. Não foi feito envio a um celular físico nem alteração do servidor da igreja.
+Testes no workflow: permissões REST e visibilidade das opções por vínculo/função; busca, seleção acumulada, remoção e salvamento de integrantes em Chromium/mobile; regressões WordPress, Portal Push, importação, atualizador e SMTP.

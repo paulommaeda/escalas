@@ -23,6 +23,8 @@ Em **Gestão → Publicar evento**, informe a data, os horários e os departamen
 
 A convocação segue o padrão da equipe: **equipe inteira**, **vaga aberta para uma pessoa** ou **vagas por função**. Todos os usuários ativos veem o evento completo, incluindo os demais departamentos e suas designações. Cada pessoa altera a própria participação; líderes atuam nas equipes/departamentos sob sua responsabilidade. A Secretaria continua somente em consulta.
 
+Na edição de equipes, busque integrantes pelo nome e acumule as escolhas em **Selecionados**, acima do filtro, antes de salvar. O botão de assumir uma equipe depende da liderança cadastrada; as ferramentas de gestão continuam disponíveis aos perfis autorizados. Vagas por função exigem vínculo com a equipe e a função correspondente.
+
 As escalas avulsas antigas com mesmo nome, local, horários e situação são agrupadas automaticamente, sem substituir vagas, confirmações ou trocas. Modelos de celebração, equipes fixas e rodízio continuam disponíveis.
 
 ## Notificações no celular
