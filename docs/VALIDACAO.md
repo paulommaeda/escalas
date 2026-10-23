@@ -1,3 +1,11 @@
+# Validação — versão 0.13.0
+
+A validação inclui `tests/tasks.php` com WordPress/MySQL e chamadas REST reais: classificação por data, publicação e geração de celebrações especiais, migração idempotente, criação/edição/movimentação/conclusão/reabertura/exclusão de tarefas, validação de prazos e responsáveis, vínculo departamento/equipe, atribuição e transferência de acesso, avisos individuais com link, permissões de gestão por departamento e etapa pelo responsável, Secretaria em consulta, conflitos de versão sem sobrescrever nem emitir aviso duplicado, cancelamento/exclusão preservando histórico e isolamento entre datas. A alteração de horários preserva prazos individuais. Bloqueios e transação seguem o mecanismo já utilizado nas escalas.
+
+`tests/tasks.cjs` verifica a seleção de eventos/celebrações, dashboard completo por data, isolamento dos cartões de tarefas, estágios, indicadores de atraso/progresso, apresentação conforme perfil e escape HTML. `tests/browser.cjs` usa JavaScript/CSS reais e API simulada em Chromium para selecionar datas, consultar designações, ativar quadro em uma celebração, criar/editar tarefas, filtrar, mover por botão e arrastar, recuperar conflito, excluir com confirmação e concluir pela visão do responsável. Inclui Secretaria, líder de departamento e voluntário, links diretos e larguras de 360, 390, 768 e 1100 pixels. A autorização real é conferida nos testes REST, independentemente da simulação do navegador.
+
+O workflow completo também executa as regressões WordPress, importação, atualizador, Portal Push e SMTP antes de publicar: https://github.com/paulommaeda/escalas/actions. Não mede alto volume simultâneo nem a entrega em dispositivos físicos; permanecem as limitações documentadas abaixo.
+
 # Validação — versão 0.12.0
 
 `tests/events.cjs` verifica os indicadores consolidados, filtros por mês, período e situação, cancelamentos sem inflar pendências, recusas como vagas a preencher, exclusão de vagas retiradas, departamentos opcionais e o escopo do líder de departamento. Secretaria pode consultar; voluntários não recebem o painel de Gestão.

@@ -1,4 +1,4 @@
-# CCShalom Escalas — 0.12.0
+# CCShalom Escalas — 0.13.0
 
 ## Atualização
 
@@ -43,13 +43,29 @@ O perfil apresenta identificação, vínculo de liderança, resumo de equipes/fu
 
 Há cartões com e-mail e telefone, acessos por biometria, recuperação de senha e saída. Para alterar dados ou vínculos, a pessoa procura a liderança. Equipes antigas sem funções cadastradas continuam aparecendo, com a indicação de que ainda não há função vinculada.
 
-## Painel de eventos e consulta de equipes
+## Gestão de um evento ou celebração
 
-A aba **Gestão** abre em **Painel de eventos**. Também há um atalho no **Início** para os perfis com acesso à Gestão. O painel apresenta seis indicadores: eventos no período, departamentos previstos, equipes a definir, vagas a preencher, respostas pendentes e participações confirmadas. Cada evento aparece uma única vez, com suas pendências e um botão para abrir a programação completa.
+Abra **Gestão → Gestão de evento** ou o atalho no Início. Selecione o evento ou uma data da celebração. Celebrações recorrentes aparecem por data: preparar um domingo não altera os demais. Os filtros de período, mês, departamento e situação ajudam a encontrar a data. O dashboard escolhido mostra o evento completo, incluindo os demais departamentos, mantendo as permissões de alteração de cada liderança.
 
-Em **Filtrar eventos**, escolha período, mês, departamento e situação. Selecionar um mês muda o período para todos, permitindo consultar meses anteriores. **Limpar filtros** retorna aos próximos eventos publicados. Os indicadores acompanham os filtros. Departamentos são contados sem repetição; participações contam vagas confirmadas, podendo incluir a mesma pessoa em eventos distintos. Vagas a preencher incluem recusas aguardando substituto. Eventos cancelados podem ser consultados, mas não somam pendências ou confirmações. A barra de confirmação considera apenas as vagas já publicadas; equipes ainda não definidas aparecem em indicador separado.
+O resumo apresenta departamentos, equipes com data assumida, equipes a definir, vagas a preencher, respostas pendentes e participações confirmadas. Uma equipe ter assumido a data não significa que todos os seus voluntários confirmaram. Em **Departamentos e equipes**, consulte responsável, formato de convocação e confirmações por equipe; expanda **Ver designações** para nomes, funções e situação individual. Use **Ver programação e escalas** para confirmar, delegar e trocar conforme as permissões existentes. Recusas aguardando substituto contam como vagas a preencher. A barra considera somente as vagas publicadas.
 
-Administradores, pastores e Secretaria veem o panorama geral. Líderes de departamento veem os indicadores dos departamentos sob sua liderança e podem abrir o evento completo. A Secretaria mantém acesso somente para consulta. Voluntários e líderes de equipe continuam acompanhando os eventos no Início e em suas equipes, sem acesso à Gestão. Cadastros e pessoas ficam na subaba **Equipes e cadastros**.
+Administradores, pastores e Secretaria podem consultar todos os eventos. Líderes de departamento escolhem eventos que incluem seu departamento e acompanham a programação completa, mas continuam alterando somente seu escopo. Voluntários e líderes de equipe mantêm a consulta à programação no Início, sem acesso à Gestão. Cadastros e pessoas permanecem em **Equipes e cadastros**.
+
+### Eventos especiais: tarefas e Kanban
+
+1. Na publicação de um evento ou geração de datas, selecione **Evento especial · tarefas e Kanban**. Para uma data existente, abra seu dashboard e use **Configurar tarefas**. Essa alteração não reconvoca equipes nem muda confirmações. A configuração é por data, independente do modelo da celebração.
+2. No quadro, clique em **Nova tarefa**. Preencha título, descrição opcional, responsável ativo, prazo com data/horário e etapa. Vincule a um departamento e, se desejar, a uma equipe desse departamento. Tarefas sem departamento pertencem à organização geral.
+3. Acompanhe **A fazer**, **Em andamento** e **Concluído**. Use os botões para alterar a etapa no celular e por teclado; no computador, também pode arrastar os cartões. Concluir registra a data de conclusão; reabrir retira esse registro atual.
+4. Os indicadores mostram quantidade de tarefas, em andamento, concluídas e atrasadas. Atrasada significa prazo vencido e etapa diferente de Concluído, em evento ativo. O horário segue o fuso configurado da igreja. Os filtros por responsável/departamento afetam os cartões; os indicadores mostram o total do evento.
+5. Abra **Ver tarefa** para consultar os detalhes, editar ou excluir conforme sua permissão. A exclusão exige confirmação e preserva o registro histórico. Duas edições simultâneas não se sobrescrevem: atualize o painel quando houver aviso de mudança.
+
+Administradores e pastores organizam todas as tarefas. O líder de departamento cria e edita as tarefas de seu departamento, incluindo as equipes vinculadas; pode consultar as demais tarefas do evento. A organização geral e a ativação/desativação do quadro exigem permissão sobre o evento inteiro. Secretaria consulta sem criar, mover, editar ou excluir tarefas e não pode ser responsável.
+
+O responsável recebe aviso pessoal e acompanha **Minhas escalas → Minhas tarefas**. Pode atualizar a etapa das tarefas atribuídas a ele; isso não concede edição de título, prazo, responsável ou acesso à Gestão. Atribuições e alterações usam o sino e, quando configurado, a integração Portal Push. O link do aviso abre a tarefa após a autenticação. Não há lembretes automáticos de vencimento nesta versão; atrasos aparecem no painel.
+
+Cancelar o evento mantém tarefas somente para consulta e avisa os responsáveis. Excluir o evento retira suas tarefas das telas e preserva o histórico no banco. A configuração de um evento regular pode ser reativada sem perder tarefas concluídas. Para desativar o quadro ou remover um departamento do evento, resolva suas tarefas pendentes primeiro. Alterar a data/horário do evento preserva os prazos individuais das tarefas: revise-os se necessário.
+
+### Consulta de equipes
 
 Na aba **Equipes**, cada cartão mostra somente nome da equipe, responsável, departamento e quantidade de integrantes. Toque nele para abrir integrantes, funções e formato de convocação. As ações de editar a equipe e selecionar funções permanecem nos detalhes, conforme as permissões da liderança.
 

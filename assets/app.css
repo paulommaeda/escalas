@@ -107,3 +107,42 @@ html.ccs-app-document{margin-top:0!important}body.ccs-standalone{margin:0;backgr
 .ccs-coverage{height:8px;background:#e8edf8;border-radius:8px;overflow:hidden;margin:8px 0 18px}
 .ccs-coverage>span{display:block;height:100%;background:var(--ccs-blue);border-radius:8px}
 @media(min-width:700px){.ccs-dashboard-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.ccs-dashboard-stats>div{padding:22px}.ccs-dashboard-stats span{font-size:12px}}
+
+/* Preparation dashboard: one concrete date, touch controls and a desktop Kanban. */
+.ccs-event-selector .ccs-field{margin-bottom:0}
+.ccs-event-management{min-width:0;overflow-wrap:anywhere}
+.ccs-event-management .ccs-hero{margin:24px 0 16px}
+.ccs-dashboard-department{margin:18px 0}
+.ccs-dashboard-team{padding:18px 0;border-top:1px solid var(--ccs-line)}
+.ccs-dashboard-team h4{margin:0;color:var(--ccs-navy);font-size:16px}
+.ccs-team-assignments summary{padding:14px 0;cursor:pointer;font-size:12px;color:var(--ccs-blue);font-weight:600}
+.ccs-team-assignments ul{list-style:none;padding:0;margin:0}
+.ccs-team-assignments li{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--ccs-line);min-width:0}
+.ccs-team-assignments li>div{min-width:0}
+.ccs-team-assignments li strong,.ccs-team-assignments li span{display:block;font-size:12px;overflow-wrap:anywhere}
+.ccs-team-assignments li .ccs-badge{flex:0 1 auto;max-width:46%;text-align:center;white-space:normal}
+.ccs-task-warning{border-left:3px solid #c7601c;background:#fff5e8;color:#804000;padding:14px;font-size:12px;border-radius:8px}
+.ccs-task-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
+.ccs-task-stats>div{padding:16px;background:#f3f6fd;border:1px solid var(--ccs-line);border-radius:12px;min-width:0}
+.ccs-task-stats strong{display:block;font-size:25px;line-height:1.3;color:var(--ccs-navy)}
+.ccs-task-stats span{font-size:11px;color:var(--ccs-muted);overflow-wrap:anywhere}
+.ccs-task-progress{appearance:none;-webkit-appearance:none;display:block;width:100%;height:9px;border:0;border-radius:9px;overflow:hidden;background:#e8edf8;margin:12px 0 28px}
+.ccs-task-progress::-webkit-progress-bar{background:#e8edf8;border-radius:9px}
+.ccs-task-progress::-webkit-progress-value{background:var(--ccs-blue);border-radius:9px}
+.ccs-task-progress::-moz-progress-bar{background:var(--ccs-blue);border-radius:9px}
+.ccs-event-tasks{margin:32px 0;min-width:0}
+.ccs-kanban{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;min-width:0}
+.ccs-kanban-column{min-width:0;min-height:160px;padding:14px;background:#f0f3fa;border:1px solid #e0e6f1;border-radius:16px}
+.ccs-kanban-column>h3{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;margin:2px 0 16px;color:var(--ccs-navy)}
+.ccs-kanban-column>h3>span{font-size:12px;border-radius:20px;background:#fff;padding:4px 9px}
+.ccs-task-card{min-width:0;padding:17px;background:#fff;border:1px solid var(--ccs-line);border-radius:12px;margin:12px 0;overflow-wrap:anywhere}
+.ccs-task-card[draggable="true"]{cursor:grab}
+.ccs-task-card[draggable="true"]:active{cursor:grabbing}
+.ccs-task-card h4{font-size:15px;line-height:1.5;margin:8px 0;color:var(--ccs-navy)}
+#ccs-app .ccs-task-card p{font-size:11px;line-height:1.6;margin:6px 0}
+.ccs-task-overdue{border-left:3px solid #cf781e}
+.ccs-task-deadline strong{display:block;color:#985310;font-size:11px}
+.ccs-task-moves{border-top:1px solid var(--ccs-line);padding-top:7px;margin-top:8px}
+#ccs-app .ccs-task-moves .ccs-button{font-size:11px;min-height:44px;padding:10px}
+.ccs-kanban-empty{padding:12px 0}
+@media(min-width:800px){.ccs-kanban{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}.ccs-task-stats{grid-template-columns:repeat(4,minmax(0,1fr))}}

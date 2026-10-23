@@ -19,7 +19,9 @@ A consulta usa somente releases estáveis com o arquivo **ccshalom-escalas.zip**
 
 ## Eventos e equipes
 
-Em **Gestão → Painel de eventos**, acompanhe eventos, departamentos previstos, equipes a definir, vagas a preencher, respostas pendentes e participações confirmadas. Filtre por período, mês, departamento e situação. A Gestão abre nesse painel e o Início oferece um atalho. Líderes de departamento acompanham os próprios departamentos; administradores, pastores e Secretaria têm visão geral, respeitando as permissões de alteração.
+Em **Gestão → Gestão de evento**, selecione o evento ou a data de uma celebração. O dashboard daquela data mostra departamentos, equipes com data assumida, vagas abertas, respostas e participações confirmadas. Consulte as designações de cada equipe ou abra a programação para as alterações autorizadas. Os filtros ajudam a encontrar a data; o painel selecionado mostra o evento completo.
+
+Marque **Evento especial · tarefas e Kanban** ao publicar ou em **Configurar tarefas** no painel da data. Crie tarefas com responsável, prazo, descrição, departamento e equipe opcionais. O quadro usa **A fazer**, **Em andamento** e **Concluído**, com indicadores de atraso e progresso. No celular, use os botões; no computador, também pode arrastar os cartões. O responsável acompanha e atualiza a etapa em **Minhas escalas → Minhas tarefas**, sem ganhar acesso à Gestão. Administradores/pastores organizam o evento; líderes de departamento alteram suas tarefas; Secretaria consulta. Avisos usam o sino e a integração Portal Push já configurada.
 
 Na aba **Equipes**, os cartões mostram apenas nome, responsável, departamento e quantidade de integrantes. Toque no cartão para consultar as pessoas e funções ou usar as ferramentas de liderança disponíveis para sua conta.
 

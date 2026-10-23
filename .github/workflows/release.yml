@@ -32,11 +32,13 @@ jobs:
         run: |
           set -euo pipefail
           find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+          node --check assets/task-views.js
           node --check assets/event-views.js
           node --check assets/app.js
           node --check assets/auth.js
           node tests/people.cjs
           node tests/events.cjs
+          node tests/tasks.cjs
       - name: Interface mobile no navegador
         env:
           CCS_PLAYWRIGHT_MODULE: /tmp/ccs-browser/node_modules/playwright

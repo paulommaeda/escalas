@@ -102,11 +102,12 @@ trait CCS_Events {
             self::require_that($arrival<=$start && $end>$start && $start>current_datetime(),'Confira as datas e horários.',400);
             $count=absint($a['repeat']??1);$interval=absint($a['interval']??7);
             self::require_that($count>=1 && $count<=12 && in_array($interval,[7,14,28],true),'Repetição inválida.',400);
+            $kind=self::event_kind($a['event_kind']??'regular');
             $title=self::text($a,'title');$location=sanitize_text_field($a['location']??'');$created=[];
             for ($i=0;$i<$count;$i++) {
                 $shift='+'.($i*$interval).' days';$starts=$start->modify($shift)->format('Y-m-d H:i:s');
                 self::require_that(!$wpdb->get_var($wpdb->prepare('SELECT id FROM '.self::table('occurrences')." WHERE title=%s AND location=%s AND starts=%s AND status='published'",$title,$location,$starts)),'Este evento já está publicado nesta data e local.',409);
-                $occ=self::insert('occurrences',['celebration_id'=>0,'title'=>$title,'location'=>$location,'arrival'=>$arrival->modify($shift)->format('Y-m-d H:i:s'),'starts'=>$starts,'ends'=>$end->modify($shift)->format('Y-m-d H:i:s'),'notes'=>sanitize_textarea_field($a['notes']??''),'rules_snapshot'=>wp_json_encode($rules),'status'=>'published','created_by'=>get_current_user_id()]);
+                $occ=self::insert('occurrences',['event_kind'=>$kind,'celebration_id'=>0,'title'=>$title,'location'=>$location,'arrival'=>$arrival->modify($shift)->format('Y-m-d H:i:s'),'starts'=>$starts,'ends'=>$end->modify($shift)->format('Y-m-d H:i:s'),'notes'=>sanitize_textarea_field($a['notes']??''),'rules_snapshot'=>wp_json_encode($rules),'status'=>'published','created_by'=>get_current_user_id()]);
                 self::audit('event_published',0,'occurrence='.$occ);self::notify_event_published($occ);$created[]=$occ;
             }
             return ['message'=>'Evento publicado. As lideranças já podem assumir as datas.','occurrence_ids'=>$created];
@@ -133,7 +134,10 @@ trait CCS_Events {
         foreach ($wpdb->get_results('SELECT * FROM '.self::table('occurrences')." WHERE status<>'deleted' ORDER BY starts DESC",ARRAY_A) as $o) {
             $rules=json_decode($o['rules_snapshot'],true)?:[];$o['requirements']=[];
             $future=$o['status']==='published' && $o['starts']>current_time('mysql');
-            $o['can_manage']=self::can_manage_occurrence($o);$o['can_edit']=$o['can_manage'] && $future;
+            $o['can_dashboard']=self::can_view_event_dashboard($o);
+            $o['can_manage']=self::can_manage_occurrence($o);
+            $o['can_plan']=$o['can_manage'] && $o['status']==='published';
+            $o['task_departments']=array_values(array_map(fn($r)=>(int)$r['department_id'],array_filter($rules,fn($r)=>self::manages_department($r['department_id']))));$o['can_edit']=$o['can_manage'] && $future;
             $o['fingerprint']=self::occurrence_fingerprint($o['id']);
             foreach ($rules as $r) {
                 $dep=(int)$r['department_id'];$r['team_count']=self::requirement_count($r);

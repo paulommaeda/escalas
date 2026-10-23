@@ -1,16 +1,26 @@
-const fs=require('fs'),assert=require('assert'),fixture=require('./event-fixture.cjs');
+const fs=require('fs'),assert=require('assert'),fixture=require('./event-fixture.cjs'),taskFixture=require('./task-fixture.cjs');
 const {chromium}=require(process.env.CCS_PLAYWRIGHT_MODULE||'playwright');
 (async()=>{
   const browser=await chromium.launch({headless:true,...(process.env.CCS_BROWSER_EXECUTABLE?{executablePath:process.env.CCS_BROWSER_EXECUTABLE}:{})});
   const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));let state=fixture(),actions=[];
-  const html='<!doctype html><html class="ccs-app-document"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>'+fs.readFileSync('assets/app.css','utf8')+fs.readFileSync('assets/account.css','utf8')+'</style></head><body class="ccs-standalone"><div id="ccs-app"><header class="ccs-header"><div class="ccs-top"><span class="ccs-wordmark">CCShalom</span><button class="ccs-bell" data-action="notifications"><span class="ccs-bell-count"></span></button></div></header><div id="ccs-message"></div><main id="ccs-content" class="ccs-main"></main><nav class="ccs-nav"></nav><dialog id="ccs-dialog"></dialog></div><div id="ccs-push-parking" hidden><div id="ccs-push-panel"><section data-ppush><h2>Notificações no dispositivo</h2><button id="provider-button" type="button">Configurar avisos</button></section></div></div><script>window.CCS_CONFIG={api:"http://fixture.test/api/",nonce:"test",login:"/login",lost:"/forgot",logout:"/logout"};document.getElementById("provider-button").addEventListener("click",()=>document.body.dataset.providerClicks=Number(document.body.dataset.providerClicks||0)+1);</script><script>'+fs.readFileSync('assets/event-views.js','utf8')+'</script><script>'+fs.readFileSync('assets/app.js','utf8')+'</script></body></html>';
+  const html='<!doctype html><html class="ccs-app-document"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>'+fs.readFileSync('assets/app.css','utf8')+fs.readFileSync('assets/account.css','utf8')+'</style></head><body class="ccs-standalone"><div id="ccs-app"><header class="ccs-header"><div class="ccs-top"><span class="ccs-wordmark">CCShalom</span><button class="ccs-bell" data-action="notifications"><span class="ccs-bell-count"></span></button></div></header><div id="ccs-message"></div><main id="ccs-content" class="ccs-main"></main><nav class="ccs-nav"></nav><dialog id="ccs-dialog"></dialog></div><div id="ccs-push-parking" hidden><div id="ccs-push-panel"><section data-ppush><h2>Notificações no dispositivo</h2><button id="provider-button" type="button">Configurar avisos</button></section></div></div><script>window.CCS_CONFIG={api:"http://fixture.test/api/",nonce:"test",login:"/login",lost:"/forgot",logout:"/logout"};document.getElementById("provider-button").addEventListener("click",()=>document.body.dataset.providerClicks=Number(document.body.dataset.providerClicks||0)+1);</script><script>'+fs.readFileSync('assets/task-views.js','utf8')+'</script><script>'+fs.readFileSync('assets/event-views.js','utf8')+'</script><script>'+fs.readFileSync('assets/app.js','utf8')+'</script></body></html>';
   await page.route('http://fixture.test/**',async route=>{
     const url=new URL(route.request().url());
     if(url.pathname==='/api/state')return route.fulfill({json:state});
     if(url.pathname==='/api/notifications')return route.fulfill({json:state.inbox});
     if(url.pathname==='/api/action'){
       const data=route.request().postDataJSON();actions.push(data);
+      if(data.action==='event_planning')state.occurrences.find(o=>o.id===Number(data.id)).event_kind=data.event_kind;
+      if(data.action==='task_move'){
+        const t=state.tasks.find(t=>t.id===Number(data.id));if(Number(data.version)!==Number(t.version))return route.fulfill({status:409,json:{message:'Esta tarefa mudou. Atualize o painel antes de salvar novamente.'}});
+        t.status=data.status;t.version++;
+      }
+      if(data.action==='task_save'){
+        let t=state.tasks.find(t=>t.id===Number(data.id));if(!t){t={id:Math.max(200,...state.tasks.map(t=>Number(t.id)))+1,version:0,created_name:'Administrador',created_at:state.now};state.tasks.push(t);}
+        Object.assign(t,{...data,id:t.id,occurrence_id:Number(data.occurrence_id),department_id:Number(data.department_id),team_id:Number(data.team_id),assigned_id:Number(data.assigned_id),version:Number(t.version)+1,due_at:data.due_at.replace('T',' ')+':00',assigned_name:state.users.find(u=>u.id===Number(data.assigned_id)).name,department_name:state.departments.find(d=>d.id===Number(data.department_id))?.name||'Organização geral',team_name:state.teams.find(team=>team.id===Number(data.team_id))?.name||'',event_status:'published',event_title:state.occurrences.find(o=>o.id===Number(data.occurrence_id)).title,updated_name:'Administrador',updated_at:state.now,can_edit:true,can_delete:true,can_move:true});
+      }
+      if(data.action==='task_delete')state.tasks=state.tasks.filter(t=>t.id!==Number(data.id));
       if(data.action==='respond')state.slots.find(s=>s.id===Number(data.id)).status=data.status;
       if(data.action==='notice_read'){state.inbox.items.forEach(n=>n.read_at='2026-10-22 11:00:00');state.inbox.unread=0;}
       return route.fulfill({json:{ok:true,message:'Salvo'}});
@@ -47,15 +57,19 @@ const {chromium}=require(process.env.CCS_PLAYWRIGHT_MODULE||'playwright');
   assert.equal(await page.locator('#ccs-dialog [data-action="claim_event_department"]').count(),0);
   assert.equal(await page.locator('#ccs-dialog [data-action="assign_occurrence"]').count(),3);
   await page.locator('#ccs-dialog .ccs-dialog-head [data-action="close"]').click();await page.locator('[data-view="manage"]').click();
-  assert.equal(await page.locator('h1').innerText(),'Painel de eventos');
-  for(const [key,value] of Object.entries({events:1,departments:3,teams:1,vacancies:1,pending:1,confirmed:1}))assert.equal(await page.locator('[data-dashboard-metric="'+key+'"]').innerText(),String(value));
-  assert.equal(await page.locator('[data-dashboard-event]').count(),1);
+  assert.equal(await page.locator('h1').innerText(),'Gestão de evento');
+  assert.equal(await page.locator('[data-dashboard-metric]').count(),0);assert.equal(await page.locator('[data-dashboard-event]').count(),1);
+  await page.locator('[name="dashboard-event"]').selectOption('50');
+  for(const [key,value] of Object.entries({departments:3,teams:2,missing:1,vacancies:1,pending:1,confirmed:1}))assert.equal(await page.locator('[data-dashboard-metric="'+key+'"]').innerText(),String(value));
+  assert((await page.locator('[data-selected-event="50"]').innerText()).includes('Transmissão'));
+  await page.locator('.ccs-team-assignments summary').first().click();assert((await page.locator('.ccs-team-assignments').first().innerText()).includes('Ana <Batera>'));
   await page.locator('[data-dashboard-filters] summary').click();await page.locator('[name="dashboard-department"]').selectOption('21');
-  assert.equal(await page.locator('[data-dashboard-metric="confirmed"]').innerText(),'1');assert.equal(await page.locator('[data-dashboard-metric="pending"]').innerText(),'0');
+  assert.equal(await page.locator('[data-selected-event]').count(),0);assert.equal(await page.locator('[data-dashboard-event]').count(),1);
   await page.locator('[name="dashboard-department"]').selectOption('');await page.locator('[name="dashboard-month"]').fill('2030-10');
   assert.equal(await page.locator('[data-dashboard-event]').count(),0);
   await page.locator('[data-action="dashboard_reset"]').click();assert.equal(await page.locator('[data-dashboard-event]').count(),1);
-  for(const width of [360,390,768]){await page.setViewportSize({width,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'dashboard fits mobile '+width);}
+  await page.locator('[data-action="event_dashboard"]').click();
+  for(const width of [360,390,768]){await page.setViewportSize({width,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'event dashboard fits mobile '+width);}
   await page.locator('[data-action="publish_event"]').click();
   assert.equal(await page.locator('[data-event-department]').count(),3);await page.locator('[data-event-enabled]').first().check();
   await page.locator('#ccs-dialog .ccs-dialog-head [data-action="close"]').click();
@@ -94,10 +108,61 @@ const {chromium}=require(process.env.CCS_PLAYWRIGHT_MODULE||'playwright');
   assert.deepEqual(actions.filter(a=>a.action==='team').at(-1).members,[]);
 
   state=fixture('secretary');await page.goto('http://fixture.test/');await page.waitForSelector('[data-view="manage"]');await page.locator('[data-view="manage"]').click();
-  assert.equal(await page.locator('[data-dashboard-metric="events"]').innerText(),'1');assert.equal(await page.locator('[data-action="publish_event"]').count(),0);
-  await page.locator('[data-dashboard-event] [data-action="occurrence"]').click();assert.equal(await page.locator('#ccs-dialog [data-action="assign_occurrence"]').count(),0);
+  await page.locator('[name="dashboard-event"]').selectOption('50');assert.equal(await page.locator('[data-dashboard-metric="teams"]').innerText(),'2');assert.equal(await page.locator('[data-action="publish_event"]').count(),0);
+  await page.locator('[data-selected-event] [data-action="occurrence"]').click();assert.equal(await page.locator('#ccs-dialog [data-action="assign_occurrence"]').count(),0);
   state=fixture('department');await page.goto('http://fixture.test/');await page.waitForSelector('[data-view="manage"]');await page.locator('[data-view="manage"]').click();
-  assert.equal(await page.locator('[data-dashboard-metric="departments"]').innerText(),'1');assert.equal(await page.locator('[data-dashboard-metric="confirmed"]').innerText(),'0');
+  await page.locator('[name="dashboard-event"]').selectOption('50');assert.equal(await page.locator('[data-dashboard-metric="departments"]').innerText(),'3');assert.equal(await page.locator('[data-dashboard-metric="confirmed"]').innerText(),'1');
+
+  // A special event owns its board; another event and a celebration can be selected separately.
+  state=taskFixture('admin');await page.goto('http://fixture.test/');await page.waitForSelector('[data-view="manage"]');await page.locator('[data-view="manage"]').click();
+  assert.equal(await page.locator('[name="dashboard-event"] optgroup[label="Celebrações"]').count(),1);
+  await page.locator('[name="dashboard-event"]').selectOption('50');
+  assert.equal(await page.locator('[data-task-column]').count(),3);assert.equal(await page.locator('[data-task-card="204"]').count(),0);
+  for(const [key,value] of Object.entries({total:3,doing:1,done:1,overdue:1}))assert.equal(await page.locator('[data-task-metric="'+key+'"]').innerText(),String(value));
+  await page.locator('[name="task-filter-assignee"]').selectOption('1');assert.equal(await page.locator('[data-task-card]').count(),1);
+  await page.locator('[name="task-filter-assignee"]').selectOption('');
+  await page.locator('[data-action="task_new"]').click();
+  assert.equal(await page.locator('form[data-form="task_save"] [name="assigned_id"] option[value="7"]').count(),0);
+  await page.locator('form[data-form="task_save"] [name="title"]').fill('Conferir som');
+  await page.locator('form[data-form="task_save"] [name="department_id"]').selectOption('20');
+  assert.equal(await page.locator('form[data-form="task_save"] [name="team_id"] option[value="11"]').count(),0);
+  await page.locator('form[data-form="task_save"] [name="team_id"]').selectOption('10');
+  await page.locator('form[data-form="task_save"] [name="assigned_id"]').selectOption('1');
+  await page.locator('form[data-form="task_save"] [name="due_at"]').fill('2030-09-26T12:00');
+  await page.locator('form[data-form="task_save"] [type="submit"]').click();await page.waitForSelector('#ccs-dialog[open]',{state:'detached'});
+  await page.waitForSelector('[data-task-card="205"] [data-action="task_details"]:not([disabled])');
+  assert.equal(await page.locator('[data-task-metric="total"]').innerText(),'4');
+  await page.locator('[data-task-card="205"] [data-action="task_details"]').click();await page.locator('#ccs-dialog [data-action="task_edit"]').click();
+  await page.locator('form[data-form="task_save"] [name="title"]').fill('Conferir som e microfones');await page.locator('form[data-form="task_save"] [type="submit"]').click();await page.waitForSelector('#ccs-dialog[open]',{state:'detached'});
+  await page.waitForSelector('[data-task-card="205"] [data-action="task_move"]:not([disabled])');
+  await page.locator('[data-task-card="205"] [data-action="task_move"][data-id="205:doing"]').click();
+  await page.waitForSelector('[data-task-column="doing"] [data-task-card="205"] [data-action="task_details"]:not([disabled])');
+  await page.setViewportSize({width:1100,height:900});await page.locator('[data-task-card="205"]').dragTo(page.locator('[data-task-column="done"]'));
+  await page.waitForSelector('[data-task-column="done"] [data-task-card="205"] [data-action="task_details"]:not([disabled])');
+  for(const width of [360,390,768,1100]){await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Kanban fits '+width);}
+  // Optimistic conflict keeps the current board; refreshing recovers the new version.
+  state.tasks.find(t=>t.id===205).version++;
+  await page.locator('[data-task-card="205"] [data-action="task_move"][data-id="205:todo"]').click();await page.waitForFunction(()=>document.querySelector('#ccs-message').textContent.includes('Esta tarefa mudou'));
+  await page.locator('[data-selected-event] [data-action="refresh"]').click();await page.waitForSelector('[data-task-card="205"] [data-action="task_details"]:not([disabled])');
+  await page.locator('[data-task-card="205"] [data-action="task_details"]').click();await page.locator('#ccs-dialog [data-action="task_delete"]').click();
+  await page.locator('form[data-form="task_delete"] [name="confirm"]').check();await page.locator('form[data-form="task_delete"] [type="submit"]').click();await page.waitForSelector('#ccs-dialog[open]',{state:'detached'});
+  await page.waitForSelector('[data-action="task_new"]:not([disabled])');assert.equal(await page.locator('[data-task-card="205"]').count(),0);
+  await page.locator('[name="dashboard-event"]').selectOption('55');assert.equal(await page.locator('[data-task-column]').count(),0);assert.equal(await page.locator('[data-selected-event="55"]').count(),1);
+  await page.locator('[data-selected-event] [data-action="event_planning"]').first().click();await page.locator('form[data-form="event_planning"] [name="event_kind"]').selectOption('special');await page.locator('form[data-form="event_planning"] [type="submit"]').click();await page.waitForSelector('#ccs-dialog[open]',{state:'detached'});
+  await page.waitForSelector('[data-selected-event="55"] [data-task-column]');assert.equal(await page.locator('[data-task-card]').count(),0);
+
+  state=taskFixture('secretary');await page.goto('http://fixture.test/');await page.waitForSelector('[data-view="manage"]');await page.locator('[data-view="manage"]').click();await page.locator('[name="dashboard-event"]').selectOption('50');
+  assert.equal(await page.locator('[data-task-column]').count(),3);assert.equal(await page.locator('[data-action="task_new"]').count(),0);assert.equal(await page.locator('[data-task-card][draggable="true"]').count(),0);
+  await page.locator('[data-task-card="201"] [data-action="task_details"]').click();assert.equal(await page.locator('#ccs-dialog [data-action="task_move"]').count(),0);assert.equal(await page.locator('#ccs-dialog [data-action="task_edit"]').count(),0);
+  state=taskFixture('department');await page.goto('http://fixture.test/');await page.waitForSelector('[data-view="manage"]');await page.locator('[data-view="manage"]').click();await page.locator('[name="dashboard-event"]').selectOption('50');
+  assert.equal(await page.locator('[data-task-card="202"] [data-action="task_move"]').count(),0);assert.equal(await page.locator('[data-task-card="201"] [data-action="task_move"]').count(),2);
+  await page.locator('[data-action="task_new"]').click();assert.deepEqual(await page.locator('form[data-form="task_save"] [name="department_id"] option').evaluateAll(options=>options.map(o=>o.value)),['20']);
+  state=taskFixture('volunteer');await page.goto('http://fixture.test/?ccs_event=50&ccs_task=201');await page.waitForSelector('#ccs-dialog[open]');
+  assert((await page.locator('#ccs-dialog').innerText()).includes('Montar palco <seguro>'));assert.equal(await page.locator('[data-view="manage"]').count(),0);assert.equal(await page.locator('#ccs-dialog [data-action="task_edit"]').count(),0);
+  await page.locator('#ccs-dialog .ccs-dialog-head [data-action="close"]').click();await page.locator('#ccs-content [data-action="mine_tasks"]').click();
+  assert.equal(await page.locator('[data-task-card]').count(),2);assert.equal(await page.locator('[data-task-card="202"]').count(),0);
+  await page.locator('[data-task-card="201"] [data-action="task_move"][data-id="201:done"]').click();await page.waitForFunction(()=>Array.from(document.querySelectorAll('[data-task-card="201"] p')).some(p=>p.textContent.includes('Concluído')));
+  assert(actions.some(a=>a.action==='task_move'&&Number(a.id)===201&&a.status==='done'));
   assert.equal(errors.length,0,errors.join('\n'));await browser.close();
-  console.log('PASS navegador: evento único, edição própria, perfil push persistente, sino, link direto, busca/seleção de integrantes, equipes resumidas, painel por perfil e mobile 360/390/768');
+  console.log('PASS navegador: evento único, edição própria, perfil push persistente, sino, link direto, busca/seleção de integrantes, equipes resumidas, gestão por data, tarefas e Kanban (criar/editar/mover/arrastar/concluir/excluir/conflito), perfis e mobile');
 })().catch(e=>{console.error(e);process.exit(1)});

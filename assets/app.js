@@ -7,7 +7,7 @@
   if(!content||!nav||!dialog||!message)return;
   let state=null, view='home', busy=false, filter={q:'',team:'',period:'future'}, lastFocus=null, manageSection='dashboard', mineSection='assigned', previewDraft=null, teamMemberDraft=null;
   let peopleQuery='', peoplePage=1, openedOccurrence=0, deepLinkHandled=false;
-  const dashboardFilter={period:'future',month:'',department:'',status:'published'};
+  const dashboardFilter={period:'future',month:'',department:'',status:'published',event:''};
   const peoplePageSize=10;
   const normalizeName=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR').trim();
   const e=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -28,7 +28,8 @@
   const input=(label,name,type='text',value='',required=true,extra='')=>`<label class="ccs-field">${e(label)}<input name="${name}" type="${type}" value="${e(value)}" ${required?'required':''} ${extra}></label>`;
   const select=(label,name,html)=>`<label class="ccs-field">${e(label)}<select name="${name}">${html}</select></label>`;
   const heading=(eyebrow,title,desc='')=>`<div class="ccs-section-heading"><span class="ccs-eyebrow">${e(eyebrow)}</span><h1 tabindex="-1">${e(title)}</h1>${desc?`<p>${e(desc)}</p>`:''}</div>`;
-  const eventViews=window.CCS_EVENT_VIEWS({getState:()=>state,e,num,same,button,badge,modeLabel,day,stamp,user,content,root,dialog,heading,empty,input,select,form,open,notify,api,load,filter,dashboardFilter,managementTabs,getMineSection:()=>mineSection,setOpened:id=>openedOccurrence=id});
+  const taskViews=window.CCS_TASK_VIEWS({getState:()=>state,e,num,same,button,stamp,content,dialog,heading,empty,input,select,form,open,notify,setOpened:id=>openedOccurrence=id,refresh:()=>view==='mine'?mine():eventViews.dashboard()});
+  const eventViews=window.CCS_EVENT_VIEWS({getState:()=>state,e,num,same,button,badge,modeLabel,day,stamp,user,content,root,dialog,heading,empty,input,select,form,open,notify,api,load,filter,dashboardFilter,managementTabs,taskViews,getMineSection:()=>mineSection,setOpened:id=>openedOccurrence=id});
   const appButtons=()=>Array.from(root.querySelectorAll('button')).filter(b=>!b.closest('[data-ppush]'));
   function notify(text,error=false){message.textContent=text;message.className=error?'ccs-alert error':'ccs-alert';message.setAttribute('role',error?'alert':'status');}
   async function api(path,body){
@@ -40,7 +41,7 @@
   }
   async function load(){
     state=await api('state');updateBell();render();
-    if(!deepLinkHandled){deepLinkHandled=true;const id=num(new URL(location.href).searchParams.get('ccs_event'));if(id){eventViews.details(id);return;}}
+    if(!deepLinkHandled){deepLinkHandled=true;const id=num(new URL(location.href).searchParams.get('ccs_event'));const task=num(new URL(location.href).searchParams.get('ccs_task'));if(task){taskViews.openTask(task);return;}if(id){eventViews.details(id);return;}}
     biometricPrompt();
   }
   async function save(data){
@@ -72,7 +73,9 @@
     return `<article class="ccs-card ccs-invitation"><span class="ccs-eyebrow">CONVITE DE SUBSTITUIÇÃO</span><h3>${e(user(i.from_id))} convidou você</h3><p>${e(ev.title)} · ${e(ev.team_name)}</p>${s.function_name?`<p>Função: ${e(s.function_name)}</p>`:''}<p>${e(stamp(ev.starts))} · Chegada ${e(ev.arrival.slice(11,16))}</p><div class="ccs-actions">${button('Aceitar e confirmar','accept',i.id,'')}${button('Não posso','reject',i.id)}</div></article>`;
   }
   function mine(){
-    content.innerHTML=heading('SUA PARTICIPAÇÃO','Minhas escalas','Confirme presença, escolha uma vaga ou convide um substituto.')+`<div class="ccs-tabs"><button type="button" data-action="mine_assigned" aria-pressed="${mineSection==='assigned'}">Minhas participações</button><button type="button" data-action="open_list" aria-pressed="${mineSection==='open'}">Vagas abertas (${openEvents().length})</button></div>`+`<div class="ccs-filters">${select('Período','period',`<option value="future" ${filter.period==='future'?'selected':''}>Próximas</option><option value="past" ${filter.period==='past'?'selected':''}>Histórico</option>`)}${input('Buscar celebração ou equipe','search','search',filter.q,false)}</div><div id="ccs-events" class="ccs-event-grid"></div>`;renderMine();
+    const taskTab='<button type="button" data-action="mine_tasks" aria-pressed="'+(mineSection==='tasks')+'">Minhas tarefas ('+(state.tasks||[]).filter(t=>same(t.assigned_id,state.me.id)&&t.status!=='done'&&t.event_status==='published').length+')</button>';
+    if(mineSection==='tasks'){content.innerHTML=heading('SUA PARTICIPAÇÃO','Minhas escalas e tarefas')+'<div class="ccs-tabs">'+button('Minhas participações','mine_assigned','','text')+button('Vagas abertas','open_list','','text')+taskTab+'</div>'+taskViews.personal();return;}
+    content.innerHTML=heading('SUA PARTICIPAÇÃO','Minhas escalas','Confirme presença, escolha uma vaga ou convide um substituto.')+`<div class="ccs-tabs"><button type="button" data-action="mine_assigned" aria-pressed="${mineSection==='assigned'}">Minhas participações</button><button type="button" data-action="open_list" aria-pressed="${mineSection==='open'}">Vagas abertas (${openEvents().length})</button>${taskTab}</div>`+`<div class="ccs-filters">${select('Período','period',`<option value="future" ${filter.period==='future'?'selected':''}>Próximas</option><option value="past" ${filter.period==='past'?'selected':''}>Histórico</option>`)}${input('Buscar celebração ou equipe','search','search',filter.q,false)}</div><div id="ccs-events" class="ccs-event-grid"></div>`;renderMine();
   }
   function renderMine(){eventViews.mineList();}
   function teams(){teamCatalog();content.insertAdjacentHTML('beforeend',eventViews.teamOpportunities());}
@@ -177,7 +180,7 @@
     open('Excluir '+names[type]+'?',form('delete',`<input type="hidden" name="type" value="${e(type)}"><p>${e(messages[type])}</p><p class="ccs-hint">O registro é retirado do uso ativo, com histórico preservado. Não há restauração pelo painel nesta versão.</p><label class="ccs-check"><input type="checkbox" name="confirm" required>Confirmo a exclusão deste item</label>`,id,'Excluir '+names[type]));
   }
   function inviteForm(id){const s=state.slots.find(s=>same(s.id,id)),candidates=state.users.filter(u=>active(u)&&!same(u.id,state.me.id)&&(!num(s.function_id)||(u.function_ids||[]).some(fid=>same(fid,s.function_id))));open('Trocar · '+(s.function_name||'Minha escala'),form('invite',`<p>Escolha um voluntário ${num(s.function_id)?'da mesma função':'ativo'}, inclusive de outra equipe. A troca só será concluída quando ele aceitar.</p>`+select('Quem pode substituir você?','to_id',options(candidates))+(candidates.length?'':'<p>Nenhum outro voluntário tem esta função no perfil.</p>')+'<p class="ccs-hint">O convite aparecerá no sino do aplicativo da pessoa escolhida. Enviar outro convite cancela o anterior.</p>',s.id,'Enviar pedido de troca'));}
-  function managementTabs(){return plansAllowed()?'<div class="ccs-tabs">'+[['dashboard','Painel de eventos'],['schedules','Equipes e cadastros'],['celebrations','Celebrações']].map(([section,label])=>'<button type="button" data-action="manage_'+section+'" aria-pressed="'+(manageSection===section)+'">'+e(label)+'</button>').join('')+'</div>':'';}
+  function managementTabs(){return plansAllowed()?'<div class="ccs-tabs">'+[['dashboard','Gestão de evento'],['schedules','Equipes e cadastros'],['celebrations','Celebrações']].map(([section,label])=>'<button type="button" data-action="manage_'+section+'" aria-pressed="'+(manageSection===section)+'">'+e(label)+'</button>').join('')+'</div>':'';}
   function celebrationsView(){
     const list=(state.occurrences||[]).filter(o=>filter.period==='future'?o.ends>=state.now:o.ends<state.now).sort((a,b)=>filter.period==='future'?a.starts.localeCompare(b.starts):b.starts.localeCompare(a.starts));
     content.innerHTML=managementTabs()+heading('UMA CELEBRAÇÃO, VÁRIAS EQUIPES','Celebrações','Defina os departamentos uma vez e organize as equipes de cada data.')+(state.me.pastor?`<div class="ccs-actions ccs-management-actions">${button('＋ Cadastrar celebração','celebration','','')}</div>`:'')+`<div class="ccs-event-grid">${(state.celebrations||[]).map(c=>`<article class="ccs-card"><span class="ccs-eyebrow">CADASTRO DA CELEBRAÇÃO</span><h2>${e(c.name)}</h2><p>${e(c.starts_time)}–${e(c.ends_time)} · ${e(c.location)}</p><p>${c.rules.length} departamentos previstos${state.me.pastor?'':' sob sua liderança'}</p><div class="ccs-actions">${state.me.pastor?button('Gerar datas','generate_dates',c.id,'')+button('Editar cadastro','celebration',c.id):''}</div></article>`).join('')||empty('O pastor pode cadastrar a primeira celebração e definir os departamentos envolvidos.')}</div><div class="ccs-title-row"><h2>Agenda de celebrações</h2>${button('Atualizar','refresh','','text')}</div>${select('Período','occurrence-period',`<option value="future" ${filter.period==='future'?'selected':''}>Próximas datas</option><option value="past" ${filter.period==='past'?'selected':''}>Histórico</option>`)}<div class="ccs-event-grid">${list.map(eventViews.card).join('')||empty('Nenhuma data gerada neste período.')}</div>`;
@@ -194,7 +197,7 @@
     if(!state.departments.length){notify('Cadastre os departamentos antes da celebração.',true);return;}
     open(c?'Editar celebração':'Cadastrar celebração',form('celebration',`<input type="hidden" name="revision" value="${num(c?.revision||0)}">`+input('Nome da celebração','name','text',c?.name||'',true,'maxlength="150"')+input('Local padrão','location','text',c?.location||'',false,'maxlength="200"')+input('Horário de início','starts_time','time',c?.starts_time||'19:00')+input('Horário de término','ends_time','time',c?.ends_time||'21:00')+input('Chegada: minutos antes do início','arrival_minutes','number',c?.arrival_minutes??30,true,'min="0" max="480"')+'<h3>Departamentos envolvidos</h3><p>O departamento pode ser obrigatório sem ter uma equipe fixa. Deixe o líder assumir a data, use o rodízio ou escolha equipes fixas.</p>'+state.departments.map(d=>ruleCard(d,c?.rules.find(r=>same(r.department_id,d.id)))).join('')+'<p class="ccs-hint">Alterar este cadastro não muda datas já geradas. Mudar a ordem das equipes reinicia o rodízio na primeira equipe selecionada.</p>',id));
   }
-  function generateForm(id){const c=state.celebrations.find(c=>same(c.id,id));previewDraft=null;open('Gerar datas · '+c.name,form('celebration_preview',input('Primeira data','date','date')+input('Quantidade de datas','repeat','number',1,true,'min="1" max="12"')+select('Intervalo','interval','<option value="7">Semanal</option><option value="14">Quinzenal</option><option value="28">A cada quatro semanas</option>')+'<label class="ccs-field">Orientações para estas datas<textarea name="notes" rows="3" maxlength="3000"></textarea></label><p>A próxima tela mostra as equipes de cada data. Você poderá ajustar as escolhas antes de publicar.</p>',id,'Conferir equipes e datas'));}
+  function generateForm(id){const c=state.celebrations.find(c=>same(c.id,id));previewDraft=null;open('Gerar datas · '+c.name,form('celebration_preview',input('Primeira data','date','date')+input('Quantidade de datas','repeat','number',1,true,'min="1" max="12"')+select('Intervalo','interval','<option value="7">Semanal</option><option value="14">Quinzenal</option><option value="28">A cada quatro semanas</option>')+select('Formato de gestão destas datas','event_kind','<option value="regular">Celebração regular</option><option value="special">Evento especial · tarefas e Kanban</option>')+'<label class="ccs-field">Orientações para estas datas<textarea name="notes" rows="3" maxlength="3000"></textarea></label><p>A próxima tela mostra as equipes de cada data. Você poderá ajustar as escolhas antes de publicar.</p>',id,'Conferir equipes e datas'));}
   async function previewDates(data){
     if(busy)return;busy=true;dialog.querySelectorAll('button').forEach(b=>b.disabled=true);
     try{
@@ -211,7 +214,15 @@
     switch(el.dataset.action){
       case 'team_details':teamDetails(id);break;
       case 'manage_dashboard':view='manage';manageSection='dashboard';render();break;
-      case 'dashboard_reset':Object.assign(dashboardFilter,{period:'future',month:'',department:'',status:'published'});eventViews.dashboard();break;
+      case 'event_dashboard':if(dialog.open)close();view='manage';manageSection='dashboard';dashboardFilter.event=String(id);render();break;
+      case 'task_new':taskViews.editor(id);break;
+      case 'task_details':taskViews.openTask(id);break;
+      case 'task_edit':{const task=(state.tasks||[]).find(t=>same(t.id,id));if(task)taskViews.editor(task.occurrence_id,id);break;}
+      case 'task_delete':taskViews.deletion(id);break;
+      case 'event_planning':taskViews.planning(id);break;
+      case 'task_move':{const [target,status]=el.dataset.id.split(':');const task=(state.tasks||[]).find(t=>same(t.id,target));if(task?.can_move){openedOccurrence=0;await save({action:'task_move',id:num(target),status,version:num(task.version)});}break;}
+      case 'mine_tasks':mineSection='tasks';view='mine';render();break;
+      case 'dashboard_reset':Object.assign(dashboardFilter,{period:'future',month:'',department:'',status:'published',event:''});eventViews.dashboard();break;
       case 'team_member_remove':if(teamMemberDraft){teamMemberDraft.delete(id);renderTeamMembers();dialog.querySelector('[data-member-search]')?.focus();}break;
       case 'delete_item':{const [type,target]=el.dataset.id.split(':');deleteForm(type,num(target));break;}
       case 'publish_event':eventViews.publishForm();break;
@@ -255,7 +266,7 @@
       case 'cancel':open('Cancelar esta escala?',form('cancel','<p>As convocações e os convites pendentes desta equipe serão cancelados. O histórico será preservado.</p>',id,'Confirmar cancelamento'));break;
     }
   });
-  root.addEventListener('submit',event=>{const f=event.target.closest('[data-form]');if(!f)return;event.preventDefault();const fd=new FormData(f),data=Object.fromEntries(fd);data.action=f.dataset.form;['members','team_ids'].forEach(k=>{if(f.querySelector(`[name="${k}"]`))data[k]=fd.getAll(k).map(num);});if(data.action==='user')data.active=fd.has('active');if(data.action==='delete')data.confirm=fd.has('confirm');
+  root.addEventListener('submit',event=>{const f=event.target.closest('[data-form]');if(!f)return;event.preventDefault();const fd=new FormData(f),data=Object.fromEntries(fd);data.action=f.dataset.form;['members','team_ids'].forEach(k=>{if(f.querySelector(`[name="${k}"]`))data[k]=fd.getAll(k).map(num);});if(data.action==='user')data.active=fd.has('active');if(data.action==='delete'||data.action==='task_delete')data.confirm=fd.has('confirm');
     if(data.action==='passkey_add'||data.action==='passkey_remove'){passkeySave(data);return;}
     if(['profile_functions','person_functions'].includes(data.action))data.function_ids=fd.getAll('function_ids').map(num);
     if(data.action==='team')data.members=fd.getAll('members').map(num);
@@ -269,8 +280,20 @@
     }
     save(data);});
   root.addEventListener('input',event=>{if(event.target.matches('[data-member-search]'))renderTeamMembers();if(event.target.name==='people-search'){peopleQuery=event.target.value;peoplePage=1;renderPeople();}if(event.target.name==='search'){filter.q=event.target.value;renderMine();}});
-  root.addEventListener('change',event=>{if((event.target.name||'').startsWith('dashboard-')){const key=event.target.name.slice(10);if(Object.prototype.hasOwnProperty.call(dashboardFilter,key)){dashboardFilter[key]=event.target.value;if(key==='month'&&event.target.value)dashboardFilter.period='all';eventViews.dashboard();content.querySelector('[name="'+event.target.name+'"]')?.focus();}return;}if(event.target.matches('[data-member-add]')&&event.target.checked&&!busy&&teamMemberDraft){const id=num(event.target.value);if(state.users.some(u=>same(u.id,id)&&active(u))){teamMemberDraft.add(id);renderTeamMembers();dialog.querySelector('[data-member-search]')?.focus();}}if(event.target.matches('[data-rule-enabled],[data-rule-policy]'))updateRuleControls(event.target.closest('[data-rule]'));if(event.target.name==='occurrence-period'){filter.period=event.target.value;celebrationsView();}if(event.target.name==='period'){filter.period=event.target.value;view==='mine'?renderMine():renderManaged();}if(event.target.name==='team-filter'){filter.team=event.target.value;renderManaged();}});
+  root.addEventListener('change',event=>{if((event.target.name||'').startsWith('dashboard-')){const key=event.target.name.slice(10);if(Object.prototype.hasOwnProperty.call(dashboardFilter,key)){dashboardFilter[key]=event.target.value;if(key!=='event')dashboardFilter.event='';if(key==='month'&&event.target.value)dashboardFilter.period='all';eventViews.dashboard();content.querySelector('[name="'+event.target.name+'"]')?.focus();}return;}if(event.target.name==='department_id'&&dialog.querySelector('[data-form="task_save"]'))taskViews.updateTeams();if(event.target.name==='task-filter-assignee'||event.target.name==='task-filter-department'){taskViews.filterChange(event.target.name,event.target.value);return;}if(event.target.matches('[data-member-add]')&&event.target.checked&&!busy&&teamMemberDraft){const id=num(event.target.value);if(state.users.some(u=>same(u.id,id)&&active(u))){teamMemberDraft.add(id);renderTeamMembers();dialog.querySelector('[data-member-search]')?.focus();}}if(event.target.matches('[data-rule-enabled],[data-rule-policy]'))updateRuleControls(event.target.closest('[data-rule]'));if(event.target.name==='occurrence-period'){filter.period=event.target.value;celebrationsView();}if(event.target.name==='period'){filter.period=event.target.value;view==='mine'?renderMine():renderManaged();}if(event.target.name==='team-filter'){filter.team=event.target.value;renderManaged();}});
   dialog.addEventListener('keydown',event=>{if(event.target.matches('[data-member-search]')&&event.key==='Enter')event.preventDefault();});
+  root.addEventListener('dragstart',event=>{
+    const card=event.target.closest('[data-task-card]'),task=(state.tasks||[]).find(t=>same(t.id,card?.dataset.taskCard));
+    if(!card)return;if(busy||!task?.can_move){event.preventDefault();return;}
+    event.dataTransfer.setData('application/x-ccs-task',JSON.stringify({id:num(task.id),version:num(task.version)}));event.dataTransfer.effectAllowed='move';
+  });
+  root.addEventListener('dragover',event=>{if(!busy&&event.target.closest('[data-task-column]')&&Array.from(event.dataTransfer.types).includes('application/x-ccs-task')){event.preventDefault();event.dataTransfer.dropEffect='move';}});
+  root.addEventListener('drop',async event=>{
+    const column=event.target.closest('[data-task-column]');if(!column||busy)return;event.preventDefault();
+    let data;try{data=JSON.parse(event.dataTransfer.getData('application/x-ccs-task'));}catch{return;}
+    const task=(state.tasks||[]).find(t=>same(t.id,data?.id));if(!task?.can_move||task.status===column.dataset.taskColumn)return;
+    openedOccurrence=0;await save({action:'task_move',id:num(task.id),version:num(data.version),status:column.dataset.taskColumn});
+  });
   dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();else openedOccurrence=0;});
   window.addEventListener('offline',()=>notify('Sem conexão. Suas ações precisam de internet para serem salvas.',true));
   window.addEventListener('online',()=>{notify('Conexão restabelecida.');if(!dialog.open&&!busy)load().catch(err=>notify(err.message,true));});

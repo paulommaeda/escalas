@@ -2,7 +2,7 @@
 Contributors: ccshalom
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 0.12.0
+Stable tag: 0.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,15 @@ Cadastro de voluntários, celebrações, equipes e vagas por função.
 Guia completo: docs/GUIA-DE-INSTALACAO.md.
 
 == Changelog ==
+= 0.13.0 =
+Gestão por evento: escolha o evento ou a data de uma celebração e abra seu dashboard completo.
+Equipes com data assumida, responsáveis, designações, vagas e confirmações individuais.
+Eventos especiais com tarefas, responsáveis, prazos e Kanban: A fazer, Em andamento e Concluído.
+Indicadores de tarefas concluídas, em andamento e atrasadas, filtros por responsável/departamento.
+Arrastar cartões no computador e botões acessíveis no celular.
+Minhas tarefas para o responsável, avisos no sino e integração com Portal Push.
+Permissões por departamento, Secretaria em consulta, proteção contra edição simultânea e histórico preservado.
+
 = 0.12.0 =
 Equipes com cartões resumidos: nome, responsável, departamento e quantidade de integrantes.
 Integrantes, funções e ferramentas da liderança disponíveis ao abrir os detalhes da equipe.

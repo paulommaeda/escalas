@@ -23,9 +23,10 @@ trait CCS_Notifications {
         self::require_that(false!==$wpdb->query($wpdb->prepare('UPDATE '.self::table('notifications').' SET read_at=%s WHERE user_id=%d AND id IN ('.$list.') AND read_at IS NULL',array_merge([current_time('mysql',true),get_current_user_id()],$ids))),'Não foi possível atualizar os avisos.',500);
         return 'Avisos marcados como lidos.';
     }
-    public static function notify_people($ids,$type,$title,$body,$occurrence=0,$event=0,$dedupe='',$invite=0) {
+    public static function notify_people($ids,$type,$title,$body,$occurrence=0,$event=0,$dedupe='',$invite=0,$task=0) {
         global $wpdb;
         $url=add_query_arg('ccs_event',(int)$occurrence,self::url());
+        if ($task) { $url=add_query_arg('ccs_task',(int)$task,$url); }
         foreach (self::ids($ids) as $uid) {
             if (!self::participant($uid) || $uid===get_current_user_id()) { continue; }
             $key=hash('sha256',$type.'|'.$dedupe.'|'.$uid);
@@ -62,7 +63,7 @@ trait CCS_Notifications {
         self::notify_people(self::team_recipients($e['team_id']),'team_published',$title,$team['name'].' · '.$e['title'].($e['mode']==='roster'?'. Confirme sua participação.':'. Veja as vagas e escolha como servir.'),$e['occurrence_id'],$event,'team:'.$audit);
     }
     public static function notify_occurrence_changed($id,$type,$audit) {
-        global $wpdb;$o=self::occurrence($id);$ids=[$o['created_by']];
+        global $wpdb;$o=self::occurrence($id);$ids=array_merge([$o['created_by']],$wpdb->get_col($wpdb->prepare('SELECT assigned_id FROM '.self::table('tasks')." WHERE occurrence_id=%d AND status<>'deleted'",$id)));
         foreach ($o['rules_snapshot'] as $r) { $ids=array_merge($ids,self::department_recipients($r['department_id'])); }
         foreach ($wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('events')." WHERE occurrence_id=%d AND status<>'deleted'",$id),ARRAY_A) as $event) {
             $ids=array_merge($ids,self::team_recipients($event['team_id']),$wpdb->get_col($wpdb->prepare('SELECT assigned_id FROM '.self::table('slots').' WHERE event_id=%d',$event['id'])));

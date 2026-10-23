@@ -10,8 +10,9 @@ require_once __DIR__.'/trait-import.php';
 require_once __DIR__.'/class-ccs-mail.php';
 require_once __DIR__.'/trait-events.php';
 require_once __DIR__.'/trait-notifications.php';
+require_once __DIR__.'/trait-tasks.php';
 final class CCS {
-    use CCS_Celebrations, CCS_Registration, CCS_Functions, CCS_Auth, CCS_Passkeys, CCS_Management, CCS_Import, CCS_Events, CCS_Notifications;
+    use CCS_Celebrations, CCS_Registration, CCS_Functions, CCS_Auth, CCS_Passkeys, CCS_Management, CCS_Import, CCS_Events, CCS_Notifications, CCS_Tasks;
     public static function table($name) { global $wpdb; return $wpdb->prefix . 'ccs_' . $name; }
     public static function boot() {
         self::auth_boot();
@@ -67,7 +68,8 @@ final class CCS {
             'slots' => "function_id bigint unsigned NOT NULL DEFAULT 0, function_name varchar(150) NOT NULL DEFAULT '', id bigint unsigned NOT NULL AUTO_INCREMENT, event_id bigint unsigned NOT NULL, original_id bigint unsigned NOT NULL, assigned_id bigint unsigned NOT NULL, status varchar(20) NOT NULL DEFAULT 'pending', PRIMARY KEY  (id), KEY event_id (event_id), KEY assigned_id (assigned_id)",
             'invites' => "id bigint unsigned NOT NULL AUTO_INCREMENT, slot_id bigint unsigned NOT NULL, from_id bigint unsigned NOT NULL, to_id bigint unsigned NOT NULL, status varchar(20) NOT NULL DEFAULT 'pending', created_at datetime NOT NULL, PRIMARY KEY  (id), KEY slot_id (slot_id), KEY to_id (to_id)",
             'celebrations' => "active tinyint NOT NULL DEFAULT 1, id bigint unsigned NOT NULL AUTO_INCREMENT, name varchar(150) NOT NULL, location varchar(200) NOT NULL DEFAULT '', starts_time varchar(5) NOT NULL, ends_time varchar(5) NOT NULL, arrival_minutes int unsigned NOT NULL DEFAULT 30, rules longtext NOT NULL, revision bigint unsigned NOT NULL DEFAULT 1, PRIMARY KEY  (id)",
-            'occurrences' => "created_by bigint unsigned NOT NULL DEFAULT 0, id bigint unsigned NOT NULL AUTO_INCREMENT, celebration_id bigint unsigned NOT NULL, title varchar(150) NOT NULL, location varchar(200) NOT NULL DEFAULT '', arrival datetime NOT NULL, starts datetime NOT NULL, ends datetime NOT NULL, notes text NOT NULL, rules_snapshot longtext NOT NULL, status varchar(20) NOT NULL DEFAULT 'published', PRIMARY KEY  (id), KEY celebration_id (celebration_id), KEY starts (starts)",
+            'occurrences' => "event_kind varchar(20) NOT NULL DEFAULT 'regular', created_by bigint unsigned NOT NULL DEFAULT 0, id bigint unsigned NOT NULL AUTO_INCREMENT, celebration_id bigint unsigned NOT NULL, title varchar(150) NOT NULL, location varchar(200) NOT NULL DEFAULT '', arrival datetime NOT NULL, starts datetime NOT NULL, ends datetime NOT NULL, notes text NOT NULL, rules_snapshot longtext NOT NULL, status varchar(20) NOT NULL DEFAULT 'published', PRIMARY KEY  (id), KEY celebration_id (celebration_id), KEY starts (starts)",
+            'tasks' => "id bigint unsigned NOT NULL AUTO_INCREMENT, occurrence_id bigint unsigned NOT NULL, department_id bigint unsigned NOT NULL DEFAULT 0, team_id bigint unsigned NOT NULL DEFAULT 0, title varchar(150) NOT NULL, description text NOT NULL, assigned_id bigint unsigned NOT NULL, due_at datetime NOT NULL, status varchar(20) NOT NULL DEFAULT 'todo', version bigint unsigned NOT NULL DEFAULT 1, created_by bigint unsigned NOT NULL, updated_by bigint unsigned NOT NULL, created_at datetime NOT NULL, updated_at datetime NOT NULL, completed_at datetime NULL, PRIMARY KEY  (id), KEY event_board (occurrence_id,status), KEY assigned_due (assigned_id,due_at)",
             'notifications' => "id bigint unsigned NOT NULL AUTO_INCREMENT, user_id bigint unsigned NOT NULL, type varchar(50) NOT NULL, title varchar(120) NOT NULL, body text NOT NULL, url text NOT NULL, occurrence_id bigint unsigned NOT NULL DEFAULT 0, event_id bigint unsigned NOT NULL DEFAULT 0, invite_id bigint unsigned NOT NULL DEFAULT 0, dedupe_key varchar(64) NOT NULL, created_at datetime NOT NULL, read_at datetime NULL, push_status varchar(20) NOT NULL DEFAULT 'pending', push_attempts int unsigned NOT NULL DEFAULT 0, push_next datetime NOT NULL, push_error varchar(100) NOT NULL DEFAULT '', PRIMARY KEY  (id), UNIQUE KEY dedupe_key (dedupe_key), KEY user_inbox (user_id,read_at), KEY push_queue (push_status,push_next)",
             'audit' => 'id bigint unsigned NOT NULL AUTO_INCREMENT, actor_id bigint unsigned NOT NULL, event_id bigint unsigned NOT NULL DEFAULT 0, action varchar(100) NOT NULL, detail text NOT NULL, created_at datetime NOT NULL, PRIMARY KEY  (id), KEY event_id (event_id)',
         ];
@@ -183,7 +185,7 @@ final class CCS {
             $rows=$wpdb->get_results($wpdb->prepare('SELECT id,actor_id,event_id,action,created_at FROM '.self::table('audit').' WHERE event_id=%d ORDER BY id DESC LIMIT 50',$event['id']),ARRAY_A);
             foreach ($rows as $row) { $row['actor_name']=self::name($row['actor_id']); $row['created_at']=get_date_from_gmt($row['created_at']); $audit[]=$row; }
         }
-        return array_merge(self::celebration_state($events), ['inbox'=>self::notification_feed(),'push'=>['available'=>self::push_available()],'notifications'=>self::notifications(),'functions'=>$wpdb->get_results('SELECT id,name FROM '.self::table('functions').' WHERE active=1 ORDER BY name',ARRAY_A),'can_catalog'=>self::can_catalog(),'passkeys'=>self::passkey_list(), 'passkey_available'=>self::passkey_available(), 'audit'=>$audit,'me'=>['id'=>$uid, 'name'=>self::name($uid), 'role_label'=>self::role_label(), 'pastor'=>self::pastor(),'secretary'=>self::secretary(),'can_manage'=>self::management_access(),'can_publish_event'=>self::can_publish_event(),'can_assign_functions'=>self::can_catalog(),'can_serve'=>self::can_serve($uid),'import_url'=>self::import_allowed()?self::import_url():'', 'phone'=>get_user_meta($uid,'ccs_phone',true), 'email'=>wp_get_current_user()->user_email], 'teams'=>$teams, 'departments'=>$departments, 'events'=>$events, 'slots'=>$slots, 'invites'=>$invites, 'users'=>$users, 'now'=>current_datetime()->format('Y-m-d H:i:s'), 'timezone'=>wp_timezone_string()]);
+        return array_merge(self::celebration_state($events), ['tasks'=>self::task_state(),'inbox'=>self::notification_feed(),'push'=>['available'=>self::push_available()],'notifications'=>self::notifications(),'functions'=>$wpdb->get_results('SELECT id,name FROM '.self::table('functions').' WHERE active=1 ORDER BY name',ARRAY_A),'can_catalog'=>self::can_catalog(),'passkeys'=>self::passkey_list(), 'passkey_available'=>self::passkey_available(), 'audit'=>$audit,'me'=>['id'=>$uid, 'name'=>self::name($uid), 'role_label'=>self::role_label(), 'pastor'=>self::pastor(),'secretary'=>self::secretary(),'can_manage'=>self::management_access(),'can_publish_event'=>self::can_publish_event(),'can_assign_functions'=>self::can_catalog(),'can_serve'=>self::can_serve($uid),'import_url'=>self::import_allowed()?self::import_url():'', 'phone'=>get_user_meta($uid,'ccs_phone',true), 'email'=>wp_get_current_user()->user_email], 'teams'=>$teams, 'departments'=>$departments, 'events'=>$events, 'slots'=>$slots, 'invites'=>$invites, 'users'=>$users, 'now'=>current_datetime()->format('Y-m-d H:i:s'), 'timezone'=>wp_timezone_string()]);
     }
     public static function insert($table, $data) { global $wpdb; if (false===$wpdb->insert(self::table($table),$data)) { self::fail('Não foi possível salvar. Tente novamente.',500); } return (int)$wpdb->insert_id; }
     public static function update($table,$data,$where) { global $wpdb; if (false===$wpdb->update(self::table($table),$data,$where)) { self::fail('Não foi possível atualizar. Tente novamente.',500); } }
@@ -228,6 +230,7 @@ final class CCS {
         $uid=get_current_user_id(); $id=absint($a['id']??0);
         if (($a['action']??'')==='notice_read') { return self::read_notifications($a); }
         self::require_that(!self::secretary(),'O perfil Secretaria tem acesso somente para consulta.',403);
+        if (in_array($a['action']??'',['task_save','task_move','task_delete','event_planning'],true)) { return self::task_action($a); }
         switch ($a['action']??'') {
         case 'department':
             self::require_that(self::pastor());
@@ -394,8 +397,9 @@ final class CCS {
         self::auth_assets();
         if (is_user_logged_in() && self::participant(get_current_user_id())) {
             self::push_assets();
+            wp_enqueue_script('ccs-task-views',plugins_url('assets/task-views.js',CCS_FILE),[],CCS_VERSION,true);
             wp_enqueue_script('ccs-event-views',plugins_url('assets/event-views.js',CCS_FILE),[],CCS_VERSION,true);
-            wp_enqueue_script('ccs-app',plugins_url('assets/app.js',CCS_FILE),['ccs-auth','ccs-event-views'],CCS_VERSION,true);
+            wp_enqueue_script('ccs-app',plugins_url('assets/app.js',CCS_FILE),['ccs-auth','ccs-task-views','ccs-event-views'],CCS_VERSION,true);
             wp_localize_script('ccs-app','CCS_CONFIG',['api'=>rest_url('ccshalom/v1/'),'nonce'=>wp_create_nonce('wp_rest'),'login'=>self::auth_url(), 'logout'=>self::logout_url(),'lost'=>self::auth_url('forgot')]);
         }
     }

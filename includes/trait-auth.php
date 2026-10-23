@@ -21,7 +21,11 @@ trait CCS_Auth {
         if ($wpdb->get_var($wpdb->prepare('SELECT id FROM '.self::table('teams').' WHERE active=1 AND leader_id=%d',$uid))) { return 'Líder de equipe'; }
         return 'Voluntário';
     }
-    public static function auth_destination() { $id=absint($_POST['ccs_event']??$_GET['ccs_event']??0);return $id?add_query_arg('ccs_event',$id,self::url()):self::url(); }
+    public static function auth_destination() {
+        $id=absint($_POST['ccs_event']??$_GET['ccs_event']??0);$task=absint($_POST['ccs_task']??$_GET['ccs_task']??0);
+        $url=$id?add_query_arg('ccs_event',$id,self::url()):self::url();
+        return $task?add_query_arg('ccs_task',$task,$url):$url;
+    }
     public static function auth_url($screen='login') { return add_query_arg('ccs_auth',$screen,self::auth_destination()); }
     public static function logout_url() { return wp_nonce_url(add_query_arg(['action'=>'ccs_auth','screen'=>'logout'],self::url()),'ccs_logout'); }
     public static function auth_binding($create=false) {

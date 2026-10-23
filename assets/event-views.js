@@ -31,7 +31,8 @@ window.CCS_EVENT_VIEWS = function (ctx) {
     ctx.content.innerHTML=ctx.heading('JUNTOS PARA SERVIR','Olá, '+S().me.name.split(' ')[0]+'.','Um encontro, todos os departamentos, o mesmo propósito.')+
       '<section class="ccs-hero"><div><span class="ccs-eyebrow">NOSSO PRÓXIMO EVENTO</span><h2>'+e(next?next.title:'Prontos para o próximo encontro')+'</h2><p>'+e(next?ctx.stamp(next.starts):'Os eventos publicados aparecerão aqui.')+'</p></div>'+(next?button('Ver evento','occurrence',next.id,'light'):'')+'</section>'+
       '<div class="ccs-stats"><div><strong>'+own.length+'</strong><span>Eventos em que você serve</span></div><div><strong>'+pending+'</strong><span>Suas respostas pendentes</span></div><div><strong>'+invitations+'</strong><span>Pedidos de troca</span></div></div>'+
-      (S().me.can_manage?'<section class="ccs-card ccs-open-callout"><h2>Painel de eventos</h2><p>Acompanhe as equipes, vagas e confirmações dos eventos.</p>'+button('Abrir painel de eventos','manage_dashboard','','')+'</section>':'')+
+      (S().me.can_manage?'<section class="ccs-card ccs-open-callout"><h2>Gestão de evento</h2><p>Selecione uma data e acompanhe equipes, confirmações e tarefas.</p>'+button('Gerenciar um evento','manage_dashboard','','')+'</section>':'')+
+      ((S().tasks||[]).some(t=>same(t.assigned_id,S().me.id)&&t.status!=='done'&&t.event_status==='published')?'<section class="ccs-card ccs-open-callout"><h2>Suas tarefas nos eventos</h2><p>Confira os prazos e atualize o andamento.</p>'+button('Minhas tarefas','mine_tasks','','')+'</section>':'')+
       (openEvents().length?'<section class="ccs-card ccs-open-callout"><h2>Há um lugar para você</h2><p>'+openEvents().length+' evento(s) com vagas nas suas equipes.</p>'+button('Escolher uma vaga','open_list','','')+'</section>':'')+
       '<div class="ccs-title-row"><h2>Próximos eventos</h2>'+button('Atualizar','refresh','','text')+'</div><div class="ccs-event-grid">'+(list.map(card).join('')||ctx.empty('Nenhum evento publicado neste período.'))+'</div>';
   }
@@ -50,28 +51,34 @@ window.CCS_EVENT_VIEWS = function (ctx) {
     const live=rows.filter(r=>r.event.status==='published');
     return {rows,metrics:{events:rows.length,departments:new Set(live.flatMap(r=>r.requirements.map(d=>num(d.department_id)))).size,teams:live.reduce((n,r)=>n+r.missing,0),vacancies:live.reduce((n,r)=>n+r.vacancies,0),pending:live.reduce((n,r)=>n+r.pending,0),confirmed:live.reduce((n,r)=>n+r.confirmed,0)}};
   }
-  function dashboardEvent(row) {
-    const o=row.event,cancelled=o.status==='cancelled',percent=row.total?Math.round(100*row.confirmed/row.total):0;
-    const status=cancelled?badge('cancelled'):row.missing?badge('available','Aguardando equipes'):row.vacancies?badge('declined','Vagas a preencher'):row.pending?badge('pending','Aguardando confirmações'):badge('confirmed','Sem pendências');
-    return '<article class="ccs-card ccs-dashboard-event" data-dashboard-event="'+num(o.id)+'"><span class="ccs-eyebrow">'+e(ctx.stamp(o.starts))+'</span><h2>'+e(o.title)+'</h2><p>'+row.requirements.map(r=>e(r.department_name)).join(' · ')+'</p><div class="ccs-badges">'+status+'</div>'+
-      (!cancelled?'<dl class="ccs-dashboard-event-numbers"><div><dt>Equipes a definir</dt><dd>'+row.missing+'</dd></div><div><dt>Vagas a preencher</dt><dd>'+row.vacancies+'</dd></div><div><dt>Respostas pendentes</dt><dd>'+row.pending+'</dd></div></dl><p class="ccs-hint">'+row.confirmed+' de '+row.total+' participações confirmadas nas vagas publicadas</p><div class="ccs-coverage" role="progressbar" aria-label="Confirmações nas vagas publicadas de '+e(o.title)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><span style="width:'+percent+'%"></span></div>':'')+
-      '<div class="ccs-actions">'+button('Ver evento completo','occurrence',o.id)+'</div></article>';
+  function eventDashboardData(id) {
+    const o=all().find(o=>same(o.id,id));
+    const allowed=o&&S().me.can_manage&&(o.can_dashboard??(S().me.pastor||S().me.secretary||(o.requirements||[]).some(r=>S().departments.some(d=>same(d.id,r.department_id)&&d.can_manage))));
+    if(!allowed)return null;
+    const requirements=o.requirements||[],live=o.status==='published',events=requirements.flatMap(r=>r.events||[]).filter(ev=>ev.status==='published'),ids=new Set(events.map(ev=>num(ev.id)));
+    const list=S().slots.filter(s=>ids.has(num(s.event_id))&&s.status!=='withdrawn');
+    return {event:o,requirements,slots:list,metrics:{departments:requirements.length,teams:live?events.length:0,missing:live?requirements.reduce((n,r)=>n+(r.required===false?0:Math.max(0,num(r.team_count||1)-(r.events||[]).filter(ev=>ev.status==='published').length)),0):0,vacancies:live?list.filter(s=>['available','declined'].includes(s.status)).length:0,pending:live?list.filter(s=>s.status==='pending').length:0,confirmed:live?list.filter(s=>s.status==='confirmed').length:0}};
+  }
+  function dashboardDepartments(data) {
+    const o=data.event;
+    return '<section aria-labelledby="ccs-event-teams-title"><h2 id="ccs-event-teams-title">Departamentos e equipes</h2><p class="ccs-hint">Uma equipe com data assumida ainda pode ter voluntários aguardando resposta. As confirmações individuais aparecem em cada equipe.</p>'+data.requirements.map(r=>'<article class="ccs-card ccs-dashboard-department"><div class="ccs-title-row"><h3>'+e(r.department_name)+'</h3><span class="ccs-count-pill">'+(r.events||[]).filter(ev=>ev.status==='published').length+'/'+num(r.team_count||1)+' equipes</span></div>'+((r.events||[]).map(ev=>{
+      const t=S().teams.find(t=>same(t.id,ev.team_id)),list=S().slots.filter(s=>same(s.event_id,ev.id)&&s.status!=='withdrawn'),confirmed=list.filter(s=>s.status==='confirmed').length;
+      return '<section class="ccs-dashboard-team"><div class="ccs-title-row"><h4>'+e(ev.team_name)+'</h4>'+badge(ev.status==='published'?'confirmed':'cancelled',ev.status==='published'?'Data assumida':'Participação cancelada')+'</div><p>Responsável: '+e(t?.leader_id?ctx.user(t.leader_id):'Não definido')+'</p><p class="ccs-hint">'+e(ctx.modeLabel(ev.mode))+' · '+confirmed+'/'+list.length+' participações confirmadas</p>'+((list.length)?'<details class="ccs-team-assignments"><summary>Ver designações ('+list.length+')</summary><ul>'+list.map(slot=>'<li><div><strong>'+e(slot.function_name||(ev.mode==='roster'?'Integrante':'Participação'))+'</strong><span>'+e(slot.assigned_id?ctx.user(slot.assigned_id):'Vaga disponível')+'</span></div>'+badge(slot.status)+'</li>').join('')+'</ul></details>':'<p class="ccs-hint">Nenhuma vaga publicada para esta equipe.</p>')+'</section>';
+    }).join('')||'<p>Nenhuma equipe assumiu esta data.</p>')+(r.required!==false&&r.missing_team&&o.status==='published'?'<p class="ccs-task-warning">Falta definir '+num(r.remaining_teams)+' equipe(s).</p>':'')+(r.can_assign?'<div class="ccs-actions">'+button('Definir equipes','assign_occurrence',o.id+':'+r.department_id)+'</div>':'')+'</article>').join('')+'</section>';
   }
   function dashboard() {
     if(!S().me.can_manage)return;
-    const expanded=ctx.content.querySelector('[data-dashboard-filters]')?.open;
-    const data=dashboardData(),opts=(choices,value)=>choices.map(([id,label])=>'<option value="'+e(id)+'" '+(String(value)===String(id)?'selected':'')+'>'+e(label)+'</option>').join('');
+    const data=dashboardData(),selected=eventDashboardData(dashboardFilter.event),expanded=ctx.content.querySelector('[data-dashboard-filters]')?.open;
+    const opts=(choices,value)=>choices.map(([id,label])=>'<option value="'+e(id)+'" '+(String(value)===String(id)?'selected':'')+'>'+e(label)+'</option>').join('');
     const departments=S().departments.filter(d=>S().me.pastor||S().me.secretary||d.can_manage);
-    const filters='<details class="ccs-dashboard-filters" data-dashboard-filters '+(expanded?'open':'')+'><summary>Filtrar eventos</summary><div class="ccs-filters">'+
-      ctx.select('Período','dashboard-period',opts([['future','Próximos eventos'],['past','Histórico'],['all','Todos os períodos']],dashboardFilter.period))+
-      ctx.input('Mês (opcional)','dashboard-month','month',dashboardFilter.month,false)+
-      ctx.select('Departamento','dashboard-department',opts([['','Todos os departamentos'],...departments.map(d=>[d.id,d.name])],dashboardFilter.department))+
-      ctx.select('Situação','dashboard-status',opts([['published','Publicados'],['pending','Com pendências'],['ready','Sem pendências'],['cancelled','Cancelados'],['all','Todas as situações']],dashboardFilter.status))+'</div>'+button('Limpar filtros','dashboard_reset','','text')+'</details>';
-    const metrics=[['events','Eventos no período'],['departments','Departamentos previstos'],['teams','Equipes a definir'],['vacancies','Vagas a preencher'],['pending','Respostas pendentes'],['confirmed','Participações confirmadas']];
-    ctx.content.innerHTML=(ctx.managementTabs?.()||'')+ctx.heading('ACOMPANHE CADA CELEBRAÇÃO','Painel de eventos',S().me.pastor||S().me.secretary?'Visão geral dos departamentos, equipes e participações.':'Indicadores dos departamentos sob sua liderança.')+
-      '<div class="ccs-actions ccs-management-actions">'+(S().me.can_publish_event?button('＋ Publicar evento','publish_event','',''):'')+button('Equipes e cadastros','manage_schedules')+'</div>'+filters+
-      '<section class="ccs-dashboard-stats" aria-label="Indicadores dos eventos">'+metrics.map(([key,label])=>'<div><strong data-dashboard-metric="'+key+'">'+data.metrics[key]+'</strong><span>'+e(label)+'</span></div>').join('')+'</section><p class="ccs-hint ccs-dashboard-note">Indicadores conforme os filtros. Pendências e confirmações consideram somente eventos publicados; vagas a preencher incluem recusas aguardando substituto.</p>'+
-      '<div class="ccs-title-row"><h2>Eventos e pendências</h2>'+button('Atualizar','refresh','','text')+'</div><div class="ccs-event-grid">'+(data.rows.map(dashboardEvent).join('')||ctx.empty('Nenhum evento encontrado para os filtros selecionados.'))+'</div>';
+    const filters='<details class="ccs-dashboard-filters" data-dashboard-filters '+(expanded?'open':'')+'><summary>Encontrar evento ou celebração</summary><div class="ccs-filters">'+ctx.select('Período','dashboard-period',opts([['future','Próximas datas'],['past','Histórico'],['all','Todos os períodos']],dashboardFilter.period))+ctx.input('Mês (opcional)','dashboard-month','month',dashboardFilter.month,false)+ctx.select('Departamento','dashboard-department',opts([['','Todos os departamentos'],...departments.map(d=>[d.id,d.name])],dashboardFilter.department))+ctx.select('Situação','dashboard-status',opts([['published','Publicados'],['pending','Com pendências'],['ready','Sem pendências'],['cancelled','Cancelados'],['all','Todas as situações']],dashboardFilter.status))+'</div>'+button('Limpar filtros','dashboard_reset','','text')+'</details>';
+    const groups=[['Eventos',data.rows.filter(r=>!num(r.event.celebration_id))],['Celebrações',data.rows.filter(r=>num(r.event.celebration_id))]];
+    const selector=ctx.select('Selecione o evento ou a data da celebração','dashboard-event','<option value="">Escolha uma data para gerenciar</option>'+groups.filter(([,rows])=>rows.length).map(([label,rows])=>'<optgroup label="'+e(label)+'">'+opts(rows.map(r=>[r.event.id,r.event.title+' · '+ctx.stamp(r.event.starts)+(r.event.event_kind==='special'?' · Especial':'')]),dashboardFilter.event)+'</optgroup>').join(''));
+    const intro=(ctx.managementTabs?.()||'')+ctx.heading('PLANEJAMENTO E PARTICIPAÇÃO','Gestão de evento','Escolha uma data para acompanhar sua preparação, equipes e designações.')+'<div class="ccs-actions ccs-management-actions">'+(S().me.can_publish_event?button('＋ Publicar evento','publish_event','',''):'')+button('Equipes e cadastros','manage_schedules')+'</div>'+filters+'<section class="ccs-card ccs-event-selector">'+selector+'</section>';
+    if(!selected){ctx.content.innerHTML=intro+'<h2>Escolha um evento</h2><div class="ccs-event-grid">'+(data.rows.map(({event:o})=>'<article class="ccs-card" data-dashboard-event="'+num(o.id)+'"><span class="ccs-eyebrow">'+e(ctx.stamp(o.starts))+' · '+(num(o.celebration_id)?'CELEBRAÇÃO':'EVENTO')+'</span><h3>'+e(o.title)+'</h3><p>'+e(o.location||'')+'</p>'+button('Gerenciar evento','event_dashboard',o.id)+'</article>').join('')||ctx.empty('Nenhum evento encontrado. Ajuste os filtros ou publique uma data.'))+'</div>';return;}
+    const o=selected.event,m=selected.metrics,metrics=[['departments','Departamentos'],['teams','Equipes com data assumida'],['missing','Equipes a definir'],['vacancies','Vagas a preencher'],['pending','Respostas pendentes'],['confirmed','Participações confirmadas']];
+    const percent=selected.slots.length?Math.round(100*m.confirmed/selected.slots.length):0;
+    ctx.content.innerHTML=intro+'<section class="ccs-event-management" data-selected-event="'+num(o.id)+'"><div class="ccs-hero"><div><span class="ccs-eyebrow">'+(o.event_kind==='special'?'EVENTO ESPECIAL':num(o.celebration_id)?'CELEBRAÇÃO':'EVENTO')+'</span><h2>'+e(o.title)+'</h2><p>'+e(ctx.stamp(o.starts))+' até '+e(ctx.stamp(o.ends))+'</p><p>Chegada: '+e(ctx.stamp(o.arrival))+(o.location?' · '+e(o.location):'')+'</p></div></div><div class="ccs-actions ccs-management-actions">'+button('Ver programação e escalas','occurrence',o.id)+(o.can_edit?button('Editar evento','edit_occurrence',o.id):'')+(o.can_plan?button('Configurar tarefas','event_planning',o.id):'')+button('Atualizar','refresh','','text')+'</div>'+(o.status!=='published'?'<p class="ccs-task-warning">Evento cancelado. Dados e tarefas disponíveis somente para consulta.</p>':'')+(o.notes?'<p class="ccs-notes">'+e(o.notes)+'</p>':'')+'<div class="ccs-dashboard-stats" aria-label="Indicadores deste evento">'+metrics.map(([key,label])=>'<div><strong data-dashboard-metric="'+key+'">'+m[key]+'</strong><span>'+e(label)+'</span></div>').join('')+'</div><p class="ccs-hint">'+m.confirmed+' de '+selected.slots.length+' participações confirmadas nas vagas publicadas. Vagas a preencher incluem recusas aguardando substituição.</p><progress class="ccs-task-progress" max="100" value="'+percent+'" aria-label="Participações confirmadas deste evento"></progress>'+(ctx.taskViews?.board(o)||'')+dashboardDepartments(selected)+'</section>';
   }
   function mineList() {
     const source=ctx.getMineSection()==='open'?openEvents():all().filter(o=>mine(o).length);
@@ -124,6 +131,7 @@ window.CCS_EVENT_VIEWS = function (ctx) {
     ctx.open(o.title,'<div class="ccs-info"><strong>'+e(ctx.stamp(o.starts))+'</strong><span>Chegada: '+e(ctx.stamp(o.arrival))+'</span><span>Término: '+e(ctx.stamp(o.ends))+'</span>'+(o.location?'<span>'+e(o.location)+'</span>':'')+'</div>'+
       (o.notes?'<p class="ccs-notes">'+e(o.notes)+'</p>':'')+(o.status==='cancelled'?badge('cancelled'):'')+
       '<p class="ccs-hint">Todos podem acompanhar o evento completo. As ações disponíveis correspondem à sua participação ou liderança.</p>'+sections+
+      (o.can_dashboard?'<div class="ccs-actions">'+button('Painel de gestão deste evento','event_dashboard',o.id)+'</div>':'')+
       (o.can_edit?'<div class="ccs-actions">'+button('Editar evento','edit_occurrence',o.id)+button('Cancelar evento','cancel_occurrence',o.id,'danger')+'</div>':'')+
       (o.can_manage?'<div class="ccs-delete-zone">'+button('Excluir evento','delete_item','occurrence:'+o.id,'danger')+'</div>':''));
     ctx.dialog.classList.add('ccs-event-dialog');
@@ -140,6 +148,7 @@ window.CCS_EVENT_VIEWS = function (ctx) {
     if(!S().departments.some(d=>d.can_manage)){ctx.notify('Cadastre os departamentos antes de publicar o evento.',true);return;}
     ctx.open('Publicar evento',ctx.form('publish_event',ctx.input('Nome do evento','title','text','',true,'maxlength="150"')+ctx.input('Local','location','text','',false,'maxlength="200"')+
       ctx.input('Chegada das equipes','arrival','datetime-local')+ctx.input('Início','starts','datetime-local')+ctx.input('Término','ends','datetime-local')+departmentChoices(null)+
+      ctx.select('Formato de gestão','event_kind','<option value="regular">Evento ou celebração regular</option><option value="special">Evento especial · tarefas e Kanban</option>')+
       ctx.input('Quantidade de datas','repeat','number',1,true,'min="1" max="12"')+ctx.select('Intervalo','interval','<option value="7">Semanal</option><option value="14">Quinzenal</option><option value="28">A cada quatro semanas</option>')+
       '<label class="ccs-field">Orientações do evento<textarea name="notes" rows="3" maxlength="3000"></textarea></label><p class="ccs-hint">Cada data aparece uma única vez. As lideranças assumem a participação e a convocação usa o formato cadastrado da equipe.</p>',0,'Publicar evento'));
   }
@@ -184,7 +193,7 @@ window.CCS_EVENT_VIEWS = function (ctx) {
   }
   async function openNotice(id) {
     const n=S().inbox?.items?.find(n=>same(n.id,id));if(!n)return;
-    try { if(!n.read_at)await ctx.api('action',{action:'notice_read',ids:[num(n.id)]});await ctx.load();details(n.occurrence_id); } catch(error){ctx.notify(error.message,true);}
+    try { if(!n.read_at)await ctx.api('action',{action:'notice_read',ids:[num(n.id)]});await ctx.load();if(n.type.startsWith('task_')){ctx.taskViews?.openTask(num(new URL(n.url,location.href).searchParams.get('ccs_task')));}else details(n.occurrence_id); } catch(error){ctx.notify(error.message,true);}
   }
   async function readNotices() {
     const ids=(S().inbox?.items||[]).filter(n=>!n.read_at).map(n=>num(n.id));
@@ -200,5 +209,5 @@ window.CCS_EVENT_VIEWS = function (ctx) {
     if(target&&panel)target.prepend(panel);
     else if(target)target.insertAdjacentHTML('afterbegin','<div class="ccs-card"><h2>Avisos do aplicativo</h2><p>Você pode acompanhar seus avisos pelo sino no canto superior da tela.</p></div>');
   }
-  return {all,card,details,home,dashboard,dashboardData,mineList,managed,teamOpportunities,openEvents,ownEvents,publishForm,editForm,claimForm,releaseForm,teamEditForm,collectRequirements,setFeed,updateBell,notificationModal,openNotice,readNotices,parkPush,profilePush};
+  return {all,card,details,home,dashboard,dashboardData,eventDashboardData,mineList,managed,teamOpportunities,openEvents,ownEvents,publishForm,editForm,claimForm,releaseForm,teamEditForm,collectRequirements,setFeed,updateBell,notificationModal,openNotice,readNotices,parkPush,profilePush};
 };

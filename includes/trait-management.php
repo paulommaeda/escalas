@@ -29,6 +29,9 @@ trait CCS_Management {
             if (array_key_exists('requirements',$a)) {
                 $rules=self::event_requirements($a['requirements'],$o['rules_snapshot']);$selected=array_map(fn($r)=>(int)$r['department_id'],$rules);
                 foreach ($o['rules_snapshot'] as $r) { if (!in_array((int)$r['department_id'],$selected,true)) { self::require_that(!self::occurrence_team_events($id,$r['department_id']),'Libere as equipes deste departamento antes de removê-lo do evento.',409); } }
+                foreach ($o['rules_snapshot'] as $r) {
+                    if (!in_array((int)$r['department_id'],$selected,true)) { self::require_that(!$wpdb->get_var($wpdb->prepare('SELECT id FROM '.self::table('tasks')." WHERE occurrence_id=%d AND department_id=%d AND status IN ('todo','doing') LIMIT 1",$id,$r['department_id'])),'Conclua, exclua ou transfira as tarefas pendentes deste departamento antes de removê-lo.',409); }
+                }
                 foreach ($rules as $r) { self::require_that(count(self::occurrence_team_events($id,$r['department_id']))<=$r['team_count'],'Libere participações antes de reduzir a quantidade de equipes.',409); }
             }
             $changed=$data['starts']!==$o['starts'] || $data['arrival']!==$o['arrival'] || $data['ends']!==$o['ends'];

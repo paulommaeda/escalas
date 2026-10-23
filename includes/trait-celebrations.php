@@ -170,10 +170,11 @@ trait CCS_Celebrations {
             self::require_active('celebrations',$id); $c=self::celebration($id); $plan=self::build_plan($a,$c);
             if ($a['action']==='celebration_preview') { return ['preview'=>$plan,'revision'=>(int)$c['revision']]; }
             self::require_that((int)($a['revision']??0)===(int)$c['revision'],'As regras ou o rodízio mudaram. Gere a prévia novamente.',409);
+            $kind=self::event_kind($a['event_kind']??'regular');
             $created=[];
             foreach ($plan as $entry) {
                 $data=$entry['data'];
-                $occ=self::insert('occurrences',array_merge($data,['celebration_id'=>$id,'rules_snapshot'=>wp_json_encode($entry['rules']),'status'=>'published','created_by'=>get_current_user_id()]));
+                $occ=self::insert('occurrences',array_merge($data,['event_kind'=>$kind,'celebration_id'=>$id,'rules_snapshot'=>wp_json_encode($entry['rules']),'status'=>'published','created_by'=>get_current_user_id()]));
                 $created[]=$occ;
                 foreach ($entry['rules'] as $r) {
                     foreach ($r['selected_team_ids'] as $team) { self::create_event($team,$data,self::team($team)['mode'],$occ); }
