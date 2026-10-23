@@ -1,4 +1,4 @@
-# CCShalom Escalas — 0.11.2
+# CCShalom Escalas — 0.12.0
 
 ## Atualização
 
@@ -42,6 +42,16 @@ As chaves ficam vinculadas ao domínio usado no cadastro. Mudar o domínio reque
 O perfil apresenta identificação, vínculo de liderança, resumo de equipes/funções/próximas escalas, os departamentos das equipes e as funções às quais o usuário está vinculado. Acesso administrativo a uma equipe não a inclui automaticamente na lista pessoal: aparecem equipes em que a pessoa é integrante ou líder.
 
 Há cartões com e-mail e telefone, acessos por biometria, recuperação de senha e saída. Para alterar dados ou vínculos, a pessoa procura a liderança. Equipes antigas sem funções cadastradas continuam aparecendo, com a indicação de que ainda não há função vinculada.
+
+## Painel de eventos e consulta de equipes
+
+A aba **Gestão** abre em **Painel de eventos**. Também há um atalho no **Início** para os perfis com acesso à Gestão. O painel apresenta seis indicadores: eventos no período, departamentos previstos, equipes a definir, vagas a preencher, respostas pendentes e participações confirmadas. Cada evento aparece uma única vez, com suas pendências e um botão para abrir a programação completa.
+
+Em **Filtrar eventos**, escolha período, mês, departamento e situação. Selecionar um mês muda o período para todos, permitindo consultar meses anteriores. **Limpar filtros** retorna aos próximos eventos publicados. Os indicadores acompanham os filtros. Departamentos são contados sem repetição; participações contam vagas confirmadas, podendo incluir a mesma pessoa em eventos distintos. Vagas a preencher incluem recusas aguardando substituto. Eventos cancelados podem ser consultados, mas não somam pendências ou confirmações. A barra de confirmação considera apenas as vagas já publicadas; equipes ainda não definidas aparecem em indicador separado.
+
+Administradores, pastores e Secretaria veem o panorama geral. Líderes de departamento veem os indicadores dos departamentos sob sua liderança e podem abrir o evento completo. A Secretaria mantém acesso somente para consulta. Voluntários e líderes de equipe continuam acompanhando os eventos no Início e em suas equipes, sem acesso à Gestão. Cadastros e pessoas ficam na subaba **Equipes e cadastros**.
+
+Na aba **Equipes**, cada cartão mostra somente nome da equipe, responsável, departamento e quantidade de integrantes. Toque nele para abrir integrantes, funções e formato de convocação. As ações de editar a equipe e selecionar funções permanecem nos detalhes, conforme as permissões da liderança.
 
 ## Publicar um evento e assumir equipes
 

@@ -31,8 +31,47 @@ window.CCS_EVENT_VIEWS = function (ctx) {
     ctx.content.innerHTML=ctx.heading('JUNTOS PARA SERVIR','Olá, '+S().me.name.split(' ')[0]+'.','Um encontro, todos os departamentos, o mesmo propósito.')+
       '<section class="ccs-hero"><div><span class="ccs-eyebrow">NOSSO PRÓXIMO EVENTO</span><h2>'+e(next?next.title:'Prontos para o próximo encontro')+'</h2><p>'+e(next?ctx.stamp(next.starts):'Os eventos publicados aparecerão aqui.')+'</p></div>'+(next?button('Ver evento','occurrence',next.id,'light'):'')+'</section>'+
       '<div class="ccs-stats"><div><strong>'+own.length+'</strong><span>Eventos em que você serve</span></div><div><strong>'+pending+'</strong><span>Suas respostas pendentes</span></div><div><strong>'+invitations+'</strong><span>Pedidos de troca</span></div></div>'+
+      (S().me.can_manage?'<section class="ccs-card ccs-open-callout"><h2>Painel de eventos</h2><p>Acompanhe as equipes, vagas e confirmações dos eventos.</p>'+button('Abrir painel de eventos','manage_dashboard','','')+'</section>':'')+
       (openEvents().length?'<section class="ccs-card ccs-open-callout"><h2>Há um lugar para você</h2><p>'+openEvents().length+' evento(s) com vagas nas suas equipes.</p>'+button('Escolher uma vaga','open_list','','')+'</section>':'')+
       '<div class="ccs-title-row"><h2>Próximos eventos</h2>'+button('Atualizar','refresh','','text')+'</div><div class="ccs-event-grid">'+(list.map(card).join('')||ctx.empty('Nenhum evento publicado neste período.'))+'</div>';
+  }
+  const dashboardFilter=ctx.dashboardFilter||{period:'future',month:'',department:'',status:'published'};
+  function dashboardData() {
+    const allowed=S().me.can_manage,globalView=S().me.pastor||S().me.secretary;
+    const rows=allowed?all().map(o=>{
+      const requirements=(o.requirements||[]).filter(r=>(globalView||S().departments.some(d=>same(d.id,r.department_id)&&d.can_manage))&&(!dashboardFilter.department||same(r.department_id,dashboardFilter.department)));
+      if(!requirements.length)return null;
+      const live=o.status==='published',eventIds=new Set(requirements.flatMap(r=>(r.events||[]).filter(ev=>ev.status!=='cancelled'&&ev.status!=='deleted').map(ev=>num(ev.id))));
+      const assigned=S().slots.filter(s=>eventIds.has(num(s.event_id))&&s.status!=='withdrawn');
+      const missing=live?requirements.reduce((n,r)=>n+(r.required===false?0:Math.max(0,num(r.team_count||1)-(r.events||[]).filter(ev=>ev.status!=='cancelled'&&ev.status!=='deleted').length)),0):0;
+      const vacancies=live?assigned.filter(s=>['available','declined'].includes(s.status)).length:0,pending=live?assigned.filter(s=>s.status==='pending').length:0,confirmed=live?assigned.filter(s=>s.status==='confirmed').length:0;
+      return {event:o,requirements,missing,vacancies,pending,confirmed,total:live?assigned.length:0,needsAttention:!!(missing||vacancies||pending)};
+    }).filter(Boolean).filter(r=>dashboardFilter.period==='all'||(dashboardFilter.period==='past'?r.event.ends<S().now:r.event.ends>=S().now)).filter(r=>!dashboardFilter.month||r.event.starts.slice(0,7)===dashboardFilter.month).filter(r=>dashboardFilter.status==='all'||(dashboardFilter.status==='cancelled'?r.event.status==='cancelled':r.event.status==='published'&&(dashboardFilter.status==='pending'?r.needsAttention:dashboardFilter.status==='ready'?!r.needsAttention:true))).sort((a,b)=>dashboardFilter.period==='past'?b.event.starts.localeCompare(a.event.starts):a.event.starts.localeCompare(b.event.starts)):[];
+    const live=rows.filter(r=>r.event.status==='published');
+    return {rows,metrics:{events:rows.length,departments:new Set(live.flatMap(r=>r.requirements.map(d=>num(d.department_id)))).size,teams:live.reduce((n,r)=>n+r.missing,0),vacancies:live.reduce((n,r)=>n+r.vacancies,0),pending:live.reduce((n,r)=>n+r.pending,0),confirmed:live.reduce((n,r)=>n+r.confirmed,0)}};
+  }
+  function dashboardEvent(row) {
+    const o=row.event,cancelled=o.status==='cancelled',percent=row.total?Math.round(100*row.confirmed/row.total):0;
+    const status=cancelled?badge('cancelled'):row.missing?badge('available','Aguardando equipes'):row.vacancies?badge('declined','Vagas a preencher'):row.pending?badge('pending','Aguardando confirmações'):badge('confirmed','Sem pendências');
+    return '<article class="ccs-card ccs-dashboard-event" data-dashboard-event="'+num(o.id)+'"><span class="ccs-eyebrow">'+e(ctx.stamp(o.starts))+'</span><h2>'+e(o.title)+'</h2><p>'+row.requirements.map(r=>e(r.department_name)).join(' · ')+'</p><div class="ccs-badges">'+status+'</div>'+
+      (!cancelled?'<dl class="ccs-dashboard-event-numbers"><div><dt>Equipes a definir</dt><dd>'+row.missing+'</dd></div><div><dt>Vagas a preencher</dt><dd>'+row.vacancies+'</dd></div><div><dt>Respostas pendentes</dt><dd>'+row.pending+'</dd></div></dl><p class="ccs-hint">'+row.confirmed+' de '+row.total+' participações confirmadas nas vagas publicadas</p><div class="ccs-coverage" role="progressbar" aria-label="Confirmações nas vagas publicadas de '+e(o.title)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><span style="width:'+percent+'%"></span></div>':'')+
+      '<div class="ccs-actions">'+button('Ver evento completo','occurrence',o.id)+'</div></article>';
+  }
+  function dashboard() {
+    if(!S().me.can_manage)return;
+    const expanded=ctx.content.querySelector('[data-dashboard-filters]')?.open;
+    const data=dashboardData(),opts=(choices,value)=>choices.map(([id,label])=>'<option value="'+e(id)+'" '+(String(value)===String(id)?'selected':'')+'>'+e(label)+'</option>').join('');
+    const departments=S().departments.filter(d=>S().me.pastor||S().me.secretary||d.can_manage);
+    const filters='<details class="ccs-dashboard-filters" data-dashboard-filters '+(expanded?'open':'')+'><summary>Filtrar eventos</summary><div class="ccs-filters">'+
+      ctx.select('Período','dashboard-period',opts([['future','Próximos eventos'],['past','Histórico'],['all','Todos os períodos']],dashboardFilter.period))+
+      ctx.input('Mês (opcional)','dashboard-month','month',dashboardFilter.month,false)+
+      ctx.select('Departamento','dashboard-department',opts([['','Todos os departamentos'],...departments.map(d=>[d.id,d.name])],dashboardFilter.department))+
+      ctx.select('Situação','dashboard-status',opts([['published','Publicados'],['pending','Com pendências'],['ready','Sem pendências'],['cancelled','Cancelados'],['all','Todas as situações']],dashboardFilter.status))+'</div>'+button('Limpar filtros','dashboard_reset','','text')+'</details>';
+    const metrics=[['events','Eventos no período'],['departments','Departamentos previstos'],['teams','Equipes a definir'],['vacancies','Vagas a preencher'],['pending','Respostas pendentes'],['confirmed','Participações confirmadas']];
+    ctx.content.innerHTML=(ctx.managementTabs?.()||'')+ctx.heading('ACOMPANHE CADA CELEBRAÇÃO','Painel de eventos',S().me.pastor||S().me.secretary?'Visão geral dos departamentos, equipes e participações.':'Indicadores dos departamentos sob sua liderança.')+
+      '<div class="ccs-actions ccs-management-actions">'+(S().me.can_publish_event?button('＋ Publicar evento','publish_event','',''):'')+button('Equipes e cadastros','manage_schedules')+'</div>'+filters+
+      '<section class="ccs-dashboard-stats" aria-label="Indicadores dos eventos">'+metrics.map(([key,label])=>'<div><strong data-dashboard-metric="'+key+'">'+data.metrics[key]+'</strong><span>'+e(label)+'</span></div>').join('')+'</section><p class="ccs-hint ccs-dashboard-note">Indicadores conforme os filtros. Pendências e confirmações consideram somente eventos publicados; vagas a preencher incluem recusas aguardando substituto.</p>'+
+      '<div class="ccs-title-row"><h2>Eventos e pendências</h2>'+button('Atualizar','refresh','','text')+'</div><div class="ccs-event-grid">'+(data.rows.map(dashboardEvent).join('')||ctx.empty('Nenhum evento encontrado para os filtros selecionados.'))+'</div>';
   }
   function mineList() {
     const source=ctx.getMineSection()==='open'?openEvents():all().filter(o=>mine(o).length);
@@ -161,5 +200,5 @@ window.CCS_EVENT_VIEWS = function (ctx) {
     if(target&&panel)target.prepend(panel);
     else if(target)target.insertAdjacentHTML('afterbegin','<div class="ccs-card"><h2>Avisos do aplicativo</h2><p>Você pode acompanhar seus avisos pelo sino no canto superior da tela.</p></div>');
   }
-  return {all,card,details,home,mineList,managed,teamOpportunities,openEvents,ownEvents,publishForm,editForm,claimForm,releaseForm,teamEditForm,collectRequirements,setFeed,updateBell,notificationModal,openNotice,readNotices,parkPush,profilePush};
+  return {all,card,details,home,dashboard,dashboardData,mineList,managed,teamOpportunities,openEvents,ownEvents,publishForm,editForm,claimForm,releaseForm,teamEditForm,collectRequirements,setFeed,updateBell,notificationModal,openNotice,readNotices,parkPush,profilePush};
 };

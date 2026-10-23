@@ -2,7 +2,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert'),fixture=require
 const sandbox={window:{}};vm.runInNewContext(fs.readFileSync('assets/event-views.js','utf8'),sandbox);
 let state=fixture(),modal='',page='',opened=0;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ctx={getState:()=>state,e:esc,num:Number,same:(a,b)=>Number(a)===Number(b),button:(label,action,id)=>'<button data-action="'+action+'" data-id="'+id+'">'+esc(label)+'</button>',badge:(s,label)=>'<span>'+esc(label||s)+'</span>',modeLabel:m=>m,day:()=>({d:27,m:'SET'}),stamp:v=>v,user:id=>state.users.find(u=>u.id===Number(id))?.name||'Removido',content:{set innerHTML(v){page=v}},root:{querySelector:()=>null},dialog:{classList:{add:()=>{}}},heading:()=>'',empty:()=>'',open:(_,html)=>modal=html,setOpened:id=>opened=id,filter:{q:'',team:'',period:'future'},getMineSection:()=> 'assigned',notify:()=>{},api:async()=>state.inbox};
+const ctx={getState:()=>state,e:esc,num:Number,same:(a,b)=>Number(a)===Number(b),button:(label,action,id)=>'<button data-action="'+action+'" data-id="'+id+'">'+esc(label)+'</button>',badge:(s,label)=>'<span>'+esc(label||s)+'</span>',modeLabel:m=>m,day:()=>({d:27,m:'SET'}),stamp:v=>v,user:id=>state.users.find(u=>u.id===Number(id))?.name||'Removido',content:{set innerHTML(v){page=v}},root:{querySelector:()=>null},dialog:{classList:{add:()=>{}}},heading:()=>'',empty:()=>'',open:(_,html)=>modal=html,setOpened:id=>opened=id,filter:{q:'',team:'',period:'future'},dashboardFilter:{period:'future',month:'',department:'',status:'published'},getMineSection:()=> 'assigned',notify:()=>{},api:async()=>state.inbox};
 const views=sandbox.window.CCS_EVENT_VIEWS(ctx);
 views.home();assert.equal((page.match(/data-calendar-event=/g)||[]).length,1);assert(page.includes('Comunicação'));assert(page.includes('Bruno Transmissão'));assert(page.includes('Bateria'));assert(!page.includes('Ana <Batera>'));assert(page.includes('Ana &lt;Batera&gt;'));
 views.details(50);assert.equal(opened,50);assert(modal.includes('data-action="confirm" data-id="60"'));assert(!modal.includes('data-action="confirm" data-id="62"'));assert(!modal.includes('data-action="delegate"'));assert(!modal.includes('data-action="edit_occurrence"'));assert(!modal.includes('data-action="release_event_team"'));assert.equal(views.ownEvents().length,1);assert.equal(views.openEvents().length,1);
@@ -10,4 +10,27 @@ state=fixture('leader');views.details(50);assert(modal.includes('data-action="cl
 state=fixture('secretary');views.details(50);assert(!modal.includes('data-action="claim"'));assert(!modal.includes('data-action="delegate"'));assert(!modal.includes('data-action="confirm"'));assert(!modal.includes('data-action="claim_event_team"'));
 state=fixture('admin');views.details(50);assert(modal.includes('data-action="edit_occurrence"'));assert(modal.includes('data-action="assign_occurrence" data-id="50:21"'));assert(!modal.includes('data-action="claim_event_team"'));assert(!modal.includes('data-action="claim_event_department"'));assert(!modal.includes('data-action="claim"'));
 state=fixture('unqualified');views.details(50);assert(!modal.includes('data-action="claim"'));assert(!modal.includes('data-action="claim_event_team"'));assert.equal(views.openEvents().length,0);
+// Dashboard metrics follow published vacancies, requirements, filters, and department authority.
+state=fixture('admin');
+assert.deepEqual(JSON.parse(JSON.stringify(views.dashboardData().metrics)),{events:1,departments:3,teams:1,vacancies:1,pending:1,confirmed:1});
+ctx.dashboardFilter.status='ready';assert.equal(views.dashboardData().rows.length,0);
+ctx.dashboardFilter.status='pending';assert.equal(views.dashboardData().rows.length,1);
+ctx.dashboardFilter.month='2030-10';assert.equal(views.dashboardData().rows.length,0);
+ctx.dashboardFilter.month='2030-09';assert.equal(views.dashboardData().rows.length,1);
+ctx.dashboardFilter.month='';ctx.dashboardFilter.status='all';state.occurrences.push({...state.occurrences[0],id:51,status:'cancelled'});
+assert.equal(views.dashboardData().metrics.events,2);assert.equal(views.dashboardData().metrics.confirmed,1);assert.equal(views.dashboardData().metrics.teams,1);
+ctx.dashboardFilter.status='published';state.slots[0].status='declined';
+assert.equal(views.dashboardData().metrics.vacancies,2);assert.equal(views.dashboardData().metrics.pending,0);
+state=fixture('admin');state.slots[1].status='withdrawn';assert.equal(views.dashboardData().metrics.vacancies,0);assert.equal(views.dashboardData().rows[0].total,2);
+state=fixture('admin');state.occurrences[0].requirements[2].required=false;
+state.slots.forEach((slot,i)=>{slot.status='confirmed';slot.assigned_id=i+1});ctx.dashboardFilter.status='ready';
+assert.equal(views.dashboardData().metrics.teams,0);assert.equal(views.dashboardData().rows.length,1);
+ctx.dashboardFilter.status='published';ctx.dashboardFilter.period='past';state=fixture('admin');assert.equal(views.dashboardData().rows.length,0);
+state.now='2031-01-01 00:00:00';assert.equal(views.dashboardData().rows.length,1);
+ctx.dashboardFilter.period='future';state=fixture('department');
+assert.deepEqual(JSON.parse(JSON.stringify(views.dashboardData().metrics)),{events:1,departments:1,teams:0,vacancies:1,pending:1,confirmed:0});
+ctx.dashboardFilter.department='21';assert.equal(views.dashboardData().rows.length,0);ctx.dashboardFilter.department='';
+state=fixture('secretary');assert.equal(views.dashboardData().metrics.events,1);
+state=fixture();assert.equal(views.dashboardData().rows.length,0);
+console.log('PASS painel: filtros, cancelamentos, recusas, opcionais, histórico e escopo de departamento');
 views.notificationModal().then(()=>{assert(modal.includes('Confira sua participação'));assert(modal.includes('data-action="notice_open"'));console.log('PASS evento único, programa completo, permissões visuais e sino');}).catch(e=>{console.error(e);process.exitCode=1});

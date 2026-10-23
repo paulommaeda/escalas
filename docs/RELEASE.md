@@ -1,12 +1,12 @@
-## CCShalom Escalas 0.11.2
+## CCShalom Escalas 0.12.0
 
-- Busca por nome no cadastro e edição de equipes, atualizando os resultados enquanto você digita. Ignora acentos e diferenças entre maiúsculas e minúsculas.
-- Integrantes selecionados permanecem no topo ao mudar o filtro. É possível remover uma seleção e continuar adicionando pessoas antes de salvar.
-- Edição carrega os integrantes atuais; o salvamento envia exatamente a seleção final, inclusive uma lista vazia.
-- “Assumir com [equipe]” aparece apenas para o líder cadastrado da equipe. Administrador, pastor e líder de departamento mantêm as ferramentas de gestão, sem receber todas as equipes como opções pessoais de participação.
-- “Assumir pelo departamento” exige o vínculo de líder do departamento. Vagas por função continuam disponíveis apenas a integrantes com a função correspondente.
-- As mesmas regras são verificadas pelo servidor. Mantidos os modos de convocação e as designações já publicadas.
+- A primeira tela de Equipes mostra apenas nome, responsável, departamento e quantidade de integrantes. Toque no cartão para consultar pessoas, funções e formato de convocação.
+- A edição de equipes e a seleção de funções permanecem nos detalhes, disponíveis à liderança autorizada.
+- Gestão abre no Painel de eventos, com um atalho também no Início. Cada evento aparece uma única vez, reunindo seus departamentos e pendências.
+- Seis indicadores: eventos no período, departamentos previstos, equipes a definir, vagas a preencher, respostas pendentes e participações confirmadas.
+- Filtros por período, mês, departamento e situação. Cancelamentos não somam pendências ou confirmações; recusas aguardando substituto contam como vagas a preencher.
+- Administradores, pastores e Secretaria consultam a visão geral; líderes de departamento acompanham os próprios departamentos. A Secretaria continua sem alterações ou participação em escalas.
 
-Atualize em **Escalas → Atualizações → Verificar agora**. Não é necessário refazer os vínculos ou as escalas existentes.
+Atualize em **Escalas → Atualizações → Verificar agora**. Cadastros, vínculos, confirmações e trocas existentes são preservados.
 
-Testes no workflow: permissões REST e visibilidade das opções por vínculo/função; busca, seleção acumulada, remoção e salvamento de integrantes em Chromium/mobile; regressões WordPress, Portal Push, importação, atualizador e SMTP.
+O workflow verifica indicadores e filtros, cartões resumidos e detalhes das equipes, navegação e permissões por perfil em Chromium/mobile, além das regressões WordPress, Portal Push, importação, atualizador e SMTP.

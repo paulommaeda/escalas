@@ -2,7 +2,7 @@
 Contributors: ccshalom
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 0.11.2
+Stable tag: 0.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,14 @@ Cadastro de voluntários, celebrações, equipes e vagas por função.
 Guia completo: docs/GUIA-DE-INSTALACAO.md.
 
 == Changelog ==
+= 0.12.0 =
+Equipes com cartões resumidos: nome, responsável, departamento e quantidade de integrantes.
+Integrantes, funções e ferramentas da liderança disponíveis ao abrir os detalhes da equipe.
+Painel de eventos como primeira tela da Gestão, com atalho no Início.
+Indicadores de eventos, departamentos, equipes a definir, vagas, respostas e confirmações.
+Filtros por período, mês, departamento e situação; uma visão consolidada por evento.
+Líder de departamento acompanha seu escopo; Secretaria consulta o painel sem alterar escalas.
+
 = 0.11.2 =
 Busca por nome ao adicionar integrantes; selecionados ficam no topo e permanecem ao mudar o filtro.
 Remoção da seleção antes de salvar e manutenção dos integrantes existentes na edição.

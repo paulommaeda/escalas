@@ -1,3 +1,11 @@
+# Validação — versão 0.12.0
+
+`tests/events.cjs` verifica os indicadores consolidados, filtros por mês, período e situação, cancelamentos sem inflar pendências, recusas como vagas a preencher, exclusão de vagas retiradas, departamentos opcionais e o escopo do líder de departamento. Secretaria pode consultar; voluntários não recebem o painel de Gestão.
+
+`tests/browser.cjs` verifica a abertura da Gestão no painel, os seis indicadores, filtros, retorno aos cadastros, acesso da Secretaria sem publicação/alteração e indicadores limitados ao departamento do líder. Na aba Equipes, confere os quatro dados do cartão, ausência da lista de pessoas e funções nessa primeira visão, abertura dos integrantes nos detalhes e continuidade da edição da equipe. Usa JavaScript e CSS reais com API simulada em Chromium, incluindo larguras de 360, 390 e 768 pixels. A autorização no servidor permanece coberta pelos testes REST existentes.
+
+A publicação depende da aprovação do workflow completo, preservando os testes WordPress, Portal Push, importação, atualizador e SMTP: https://github.com/paulommaeda/escalas/actions. Esta atualização não altera cadastros nem designações existentes.
+
 # Validação — versão 0.11.2
 
 O workflow inclui regressões de permissão para o caso de administradores, pastores e líderes de departamento sem liderança da equipe: ausência de opções pessoais de assumir, manutenção da gestão e recusa REST de tentativa direta. Verifica o líder cadastrado, liderança inativa, participação direta de departamento, integrante habilitado em uma função, função incompatível e função compatível sem vínculo com a equipe. Administradores com vínculo explícito de liderança/membro e função continuam podendo participar normalmente.
