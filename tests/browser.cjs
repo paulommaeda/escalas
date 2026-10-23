@@ -66,14 +66,14 @@ const {chromium}=require(process.env.CCS_PLAYWRIGHT_MODULE||'playwright');
   for(const width of [360,390]){await page.setViewportSize({width,height:844});assert(await page.evaluate(()=>{const d=document.querySelector('#ccs-dialog');return d.scrollWidth<=d.clientWidth+1;}),'member picker fits mobile '+width);}
   await page.locator('form[data-form="team"] [name="name"]').fill('Equipe busca');
   await page.locator('form[data-form="team"] [name="mode"]').selectOption('roster');
-  await page.locator('form[data-form="team"] [type="submit"]').click();await page.waitForSelector('form[data-form="team"]',{state:'detached'});
+  await page.locator('form[data-form="team"] [type="submit"]').click();await page.waitForSelector('#ccs-dialog[open]',{state:'detached'});
   assert.deepEqual(actions.filter(a=>a.action==='team').at(-1).members.slice().sort((a,b)=>a-b),[1,2]);
   await page.waitForSelector('.ccs-management-actions [data-action="team"]:not([disabled])');
   await page.locator('[data-view="teams"]').click();await page.locator('[data-action="team"][data-id="10"]').click();
   assert.equal(await page.locator('[data-member-selected] [name="members"][value="1"]').count(),1);
   assert.equal(await page.locator('[data-member-add][value="1"]').count(),0);
   await page.locator('[data-action="team_member_remove"][data-id="1"]').click();
-  await page.locator('form[data-form="team"] [type="submit"]').click();await page.waitForSelector('form[data-form="team"]',{state:'detached'});
+  await page.locator('form[data-form="team"] [type="submit"]').click();await page.waitForSelector('#ccs-dialog[open]',{state:'detached'});
   assert.deepEqual(actions.filter(a=>a.action==='team').at(-1).members,[]);
 
   assert.equal(errors.length,0,errors.join('\n'));await browser.close();
