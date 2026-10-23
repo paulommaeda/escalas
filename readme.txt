@@ -2,7 +2,7 @@
 Contributors: ccshalom
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 0.13.0
+Stable tag: 0.14.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,14 @@ Cadastro de voluntários, celebrações, equipes e vagas por função.
 Guia completo: docs/GUIA-DE-INSTALACAO.md.
 
 == Changelog ==
+= 0.14.0 =
+Novo formato de equipe: Convocação por função pela liderança, sem voluntariado nas vagas.
+Funções livres no cadastro geral, como Pregação, Direção do culto e outras definidas pela igreja.
+Liderança convoca integrantes habilitados, altera ou retira convocações por data.
+Pessoa designada recebe aviso e confirmação, podendo informar indisponibilidade e solicitar troca.
+Controle contra edições simultâneas e cancelamento dos pedidos de troca ao alterar a convocação.
+Formato salvo em cada escala, preservando o comportamento das datas já publicadas.
+
 = 0.13.0 =
 Gestão por evento: escolha o evento ou a data de uma celebração e abra seu dashboard completo.
 Equipes com data assumida, responsáveis, designações, vagas e confirmações individuais.

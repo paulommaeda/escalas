@@ -1,3 +1,11 @@
+# Validação — versão 0.14.0
+
+`tests/convocations.php` integra WordPress/MySQL via REST: equipe em formato dirigido com múltiplas funções gerais, necessidades sem convocar todos, ausência de voluntariado para integrante/pastor/administrador, recusa de chamada direta à API, delegação pelo líder sem acesso à Gestão, habilitação e vínculo exigidos, conflitos de horário, chamadas sem token ou desatualizadas, confirmação e aviso individual, reatribuição com cancelamento de convites, retirada confirmada, redução de vagas, função livre acrescentada após a publicação, inativação e aviso ao líder, substituição aceita e nova confirmação preservando o substituto ao mudar horários. Verifica também os formatos preservados nas datas publicadas ao mudar o padrão da equipe.
+
+`tests/convocations.cjs` verifica a apresentação das funções dirigidas, opções exclusivas da liderança, ausência de assumir/liberar pessoalmente, indisponibilidade e troca, Secretaria em consulta e cancelamentos. Em Chromium, `tests/browser.cjs` cria uma função geral adicional, seleciona-a na equipe em formato dirigido, convoca um integrante habilitado, recusa formulário desatualizado, altera/retira convocação e verifica a visão do líder, da pessoa convocada e da Secretaria. Exercita telas de 360, 390 e 768 pixels; a autorização real fica coberta pelos testes REST.
+
+A publicação depende do workflow completo: https://github.com/paulommaeda/escalas/actions. Permanecem as regressões de eventos, tarefas/Kanban, importação, atualizador, Portal Push e SMTP e as limitações de dispositivos físicos documentadas abaixo.
+
 # Validação — versão 0.13.0
 
 A validação inclui `tests/tasks.php` com WordPress/MySQL e chamadas REST reais: classificação por data, publicação e geração de celebrações especiais, migração idempotente, criação/edição/movimentação/conclusão/reabertura/exclusão de tarefas, validação de prazos e responsáveis, vínculo departamento/equipe, atribuição e transferência de acesso, avisos individuais com link, permissões de gestão por departamento e etapa pelo responsável, Secretaria em consulta, conflitos de versão sem sobrescrever nem emitir aviso duplicado, cancelamento/exclusão preservando histórico e isolamento entre datas. A alteração de horários preserva prazos individuais. Bloqueios e transação seguem o mecanismo já utilizado nas escalas.

@@ -27,9 +27,11 @@ Na aba **Equipes**, os cartões mostram apenas nome, responsável, departamento 
 
 Em **Gestão → Publicar evento**, informe a data, os horários e os departamentos necessários, com a quantidade de equipes de cada um. Não é preciso convocar antecipadamente cada equipe. O líder abre o evento ou a aba **Equipes** e assume a participação com sua equipe.
 
-A convocação segue o padrão da equipe: **equipe inteira**, **vaga aberta para uma pessoa** ou **vagas por função**. Todos os usuários ativos veem o evento completo, incluindo os demais departamentos e suas designações. Cada pessoa altera a própria participação; líderes atuam nas equipes/departamentos sob sua responsabilidade. A Secretaria continua somente em consulta.
+A convocação segue o padrão da equipe: **equipe inteira**, **vaga aberta para uma pessoa**, **vagas por função** ou **convocação por função pela liderança**. Todos os usuários ativos veem o evento completo, incluindo os demais departamentos e suas designações. Cada pessoa altera a própria participação; líderes atuam nas equipes/departamentos sob sua responsabilidade. A Secretaria continua somente em consulta.
 
 Na edição de equipes, busque integrantes pelo nome e acumule as escolhas em **Selecionados**, acima do filtro, antes de salvar. O botão de assumir uma equipe depende da liderança cadastrada; as ferramentas de gestão continuam disponíveis aos perfis autorizados. Vagas por função exigem vínculo com a equipe e a função correspondente.
+
+Para equipes como a Pastoral, escolha **Convocação por função pela liderança** no cadastro da equipe. Cadastre livremente as funções gerais (Pregação, Direção do culto, Ceia etc.), selecione-as na equipe e habilite os integrantes nas funções correspondentes. No evento, a liderança usa **Convocar integrante**; as vagas não aceitam voluntariado. A atribuição fica confirmada, com aviso à pessoa designada. A liderança pode alterar ou retirar convocações; indisponibilidade e troca pela mesma função continuam disponíveis. Alterar o formato da equipe vale para novas participações e preserva as datas publicadas.
 
 As escalas avulsas antigas com mesmo nome, local, horários e situação são agrupadas automaticamente, sem substituir vagas, confirmações ou trocas. Modelos de celebração, equipes fixas e rodízio continuam disponíveis.
 

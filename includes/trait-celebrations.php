@@ -13,15 +13,15 @@ trait CCS_Celebrations {
     public static function can_manage_event($event) { return self::leads_team($event['team_id']); }
     public static function create_event($team,$data,$mode='roster',$occurrence=0) {
         global $wpdb; self::require_active('teams',$team);
-        self::require_that(in_array($mode,['roster','open','functions'],true),'Modo de escala inválido.',400);
+        self::require_that(in_array($mode,['roster','open','functions','assigned'],true),'Modo de escala inválido.',400);
         $members=array_filter($wpdb->get_col($wpdb->prepare('SELECT user_id FROM '.self::table('members').' WHERE team_id=%d',$team)),[__CLASS__,'can_serve']);
-        self::require_that($mode==='functions' || count($members)>0,'A equipe '.self::team($team)['name'].' não tem integrantes ativos.',400);
+        self::require_that(self::function_mode($mode) || count($members)>0,'A equipe '.self::team($team)['name'].' não tem integrantes ativos.',400);
         if ($mode==='roster') {
             foreach ($members as $m) { self::require_that(!self::conflict($m,$data['arrival'],$data['ends']),'Conflito de horário: '.self::name($m).'. Nenhuma alteração deste envio foi salva.',409); }
         }
         if ($occurrence) { $data['notes']=''; }
         $event=self::insert('events',array_merge($data,['team_id'=>$team,'mode'=>$mode,'occurrence_id'=>$occurrence,'status'=>'published','created_by'=>get_current_user_id()]));
-        if ($mode==='functions') {
+        if (self::function_mode($mode)) {
             $functions=self::team_functions($team);
             self::require_that(count($functions)>0,'Cadastre as funções da equipe '.self::team($team)['name'].' antes de convocá-la.',400);
             foreach ($functions as $function) { for ($i=0;$i<(int)$function['quantity'];$i++) { self::insert('slots',['event_id'=>$event,'function_id'=>$function['id'],'function_name'=>$function['name'],'original_id'=>0,'assigned_id'=>0,'status'=>'available']); } }

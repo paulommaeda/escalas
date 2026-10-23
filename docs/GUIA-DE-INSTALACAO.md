@@ -1,4 +1,4 @@
-# CCShalom Escalas — 0.13.0
+# CCShalom Escalas — 0.14.0
 
 ## Atualização
 
@@ -69,13 +69,30 @@ Cancelar o evento mantém tarefas somente para consulta e avisa os responsáveis
 
 Na aba **Equipes**, cada cartão mostra somente nome da equipe, responsável, departamento e quantidade de integrantes. Toque nele para abrir integrantes, funções e formato de convocação. As ações de editar a equipe e selecionar funções permanecem nos detalhes, conforme as permissões da liderança.
 
+## Equipe pastoral e convocação por função
+
+Use o formato **Convocação por função pela liderança** quando os integrantes são designados para funções por data. Ele pode ser usado pela Pastoral ou por qualquer equipe com o mesmo processo.
+
+1. Em **Gestão → Equipes e cadastros → Cadastro geral de funções**, crie as funções de que precisam: Pregação, Direção do culto, Ceia, Leitura bíblica ou qualquer outro nome. Administrador, pastor e líder de departamento mantêm suas permissões para criar funções gerais.
+2. Cadastre o departamento Pastoral e a equipe, selecione o líder e inclua os pastores como integrantes. Escolha **Convocação por função pela liderança** e selecione as funções com a quantidade necessária por celebração. Não há uma função fixa de Pregação no código: as funções vêm do cadastro geral e podem ser ampliadas depois.
+3. Habilite cada pessoa nas funções em que pode atuar, no perfil ou por **Pessoas cadastradas → Atribuir funções**. Para convocar alguém, a pessoa precisa estar ativa, integrar a equipe e ter a função correspondente. Marcar uma função no perfil não permite assumir uma vaga deste formato.
+4. Publique o evento com o departamento Pastoral. A equipe pode assumir a data pelo líder cadastrado ou ser designada pela gestão autorizada; modelos de celebração também podem usar equipe fixa ou rodízio normalmente. O formato não convoca todos os integrantes: cria as necessidades por função, aguardando a liderança escolher as pessoas.
+5. Abra o evento e use **Convocar integrante** na função desejada. A atribuição fica **confirmada**, como na delegação existente. A pessoa designada recebe um aviso no sino e, se ativado, pelo Portal Push. Os demais integrantes não recebem um convite para se voluntariar nessas vagas.
+6. A liderança pode usar **Alterar convocação** ou **Retirar convocação**. A retirada exige confirmação e deixa a função aguardando outra designação. A pessoa anterior é avisada e os pedidos de troca pendentes são cancelados. Se alguém alterar a escala enquanto o formulário estiver aberto, atualize o evento antes de tentar novamente.
+
+Os integrantes consultam suas convocações, podem informar **Não posso participar** e solicitar troca com outro voluntário ativo da mesma função, inclusive de outra equipe. A substituição depende do aceite, seguindo a regra existente. Não há ação de assumir espontaneamente nem de liberar pessoalmente uma vaga para voluntariado neste formato. A liderança resolve a necessidade por nova convocação ou retirada.
+
+A equipe pode selecionar novas funções gerais a qualquer momento. Alterações de formato, funções e integrantes valem para novas participações. Para acrescentar uma função à data já publicada, selecione-a na equipe e use **Ajustar vagas por função** no evento; só necessidades livres podem ser removidas. Retire uma convocação ocupada antes de reduzir sua quantidade. Inativar a pessoa designada volta a deixar a função pendente de liderança, com aviso ao líder.
+
+As permissões de gestão existentes são preservadas: líder da equipe e gestores autorizados podem convocar conforme seus vínculos/perfis; Secretaria continua somente para consulta. Este formato não muda o nível de acesso dos usuários. Alterações nos horários do evento pedem nova confirmação às pessoas atualmente designadas, mantendo o substituto já aceito.
+
 ## Publicar um evento e assumir equipes
 
 1. Cadastre os departamentos, seus líderes e as equipes, com líder e integrantes.
-2. Em cada equipe, escolha o formato: **Convocar equipe inteira**, **Vaga aberta · 1 pessoa** ou **Vagas por função**. No terceiro formato, selecione funções gerais e quantidades. Os voluntários escolhem suas funções no Perfil e a liderança pode atribuí-las.
+2. Em cada equipe, escolha o formato: **Convocar equipe inteira**, **Vaga aberta · 1 pessoa**, **Vagas por função** ou **Convocação por função pela liderança**. Nos dois últimos formatos, selecione funções gerais e quantidades. Os voluntários escolhem suas funções no Perfil e a liderança pode atribuí-las.
 3. Em **Gestão → Publicar evento**, informe nome, local, chegada, início e término. Selecione os departamentos necessários e quantas equipes de cada um precisam participar. O padrão é uma equipe. Pode repetir a publicação em até 12 datas.
 4. Cada líder encontra o evento no **Início** ou em **Equipes → Datas disponíveis para assumir**. Abre **Ver evento completo**, escolhe **Assumir com [equipe]** e confirma. Só pode assumir as equipes em que é líder; o líder de departamento também pode definir as equipes de seu departamento.
-5. A participação é criada com o modo cadastrado da equipe. Equipe inteira convoca todos os integrantes ativos para confirmar. Vaga aberta permite que um integrante escolha a única vaga. Vagas por função permite escolhas por pessoas habilitadas ou delegação pelo líder, já confirmadas.
+5. A participação é criada com o modo cadastrado da equipe. Equipe inteira convoca todos os integrantes ativos para confirmar. Vaga aberta permite que um integrante escolha a única vaga. Vagas por função permite escolhas por pessoas habilitadas ou delegação pelo líder, já confirmadas. Convocação por função pela liderança permite apenas designações pelos líderes e gestores autorizados, sem voluntariado.
 6. O aplicativo mostra um evento por data, incluindo todos os departamentos, equipes e pessoas designadas. A pessoa confirma, declina, assume ou troca suas próprias vagas. Ver outras participações não concede permissão de edição.
 7. Para tirar uma equipe, seu líder usa **Liberar participação da equipe**. Somente suas convocações e trocas pendentes são canceladas. O departamento volta a ter disponibilidade, preservando as demais equipes e o evento.
 

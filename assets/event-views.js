@@ -5,15 +5,17 @@ window.CCS_EVENT_VIEWS = function (ctx) {
   const children=o=>(o.requirements||[]).flatMap(r=>r.events||[]);
   const slots=o=>children(o).flatMap(ev=>S().slots.filter(s=>same(s.event_id,ev.id)));
   const mine=o=>slots(o).filter(s=>same(s.assigned_id,S().me.id)||same(s.original_id,S().me.id));
+  const slotPerson=(s,ev)=>s.status==='available'?(ev.mode==='assigned'?'Aguardando convocação':'Vaga disponível'):ctx.user(s.assigned_id);
+  const slotBadge=(s,ev)=>badge(s.status,ev.mode==='assigned'&&s.status==='available'?'Aguardando liderança':undefined);
   const all=()=>S().occurrences||[];
   const current=o=>o.status==='published'&&o.ends>=S().now;
   const sorted=list=>list.slice().sort((a,b)=>ctx.filter.period==='past'?b.starts.localeCompare(a.starts):a.starts.localeCompare(b.starts));
-  function openEvents() { return all().filter(o=>current(o)&&o.starts>S().now&&children(o).some(ev=>ev.can_claim&&S().slots.some(s=>same(s.event_id,ev.id)&&s.status==='available'&&s.can_claim))); }
+  function openEvents() { return all().filter(o=>current(o)&&o.starts>S().now&&children(o).some(ev=>ev.mode!=='assigned'&&ev.can_claim&&S().slots.some(s=>same(s.event_id,ev.id)&&s.status==='available'&&s.can_claim))); }
   function ownEvents() { return all().filter(o=>current(o)&&mine(o).length); }
   function program(o) {
     return (o.requirements||[]).map(r=>'<section class="ccs-program-department"><h4>'+e(r.department_name)+'</h4>'+
       (r.events||[]).map(ev=>'<p class="ccs-program-team">'+e(ev.team_name)+' · '+e(ctx.modeLabel(ev.mode))+'</p><ul>'+
-        S().slots.filter(s=>same(s.event_id,ev.id)).map(s=>'<li><span>'+e(s.function_name||(ev.mode==='roster'?'Integrante da equipe':'Participação'))+'</span><strong>'+e(s.status==='available'?'Vaga disponível':ctx.user(s.assigned_id))+'</strong>'+badge(s.status)+'</li>').join('')+'</ul>').join('')+
+        S().slots.filter(s=>same(s.event_id,ev.id)).map(s=>'<li><span>'+e(s.function_name||(ev.mode==='roster'?'Integrante da equipe':'Participação'))+'</span><strong>'+e(slotPerson(s,ev))+'</strong>'+slotBadge(s,ev)+'</li>').join('')+'</ul>').join('')+
       (r.missing_team?'<p class="ccs-hint">'+e(r.remaining_teams)+' participação(ões) de equipe aguardando liderança.</p>':'')+'</section>').join('');
   }
   function card(o) {
@@ -63,7 +65,7 @@ window.CCS_EVENT_VIEWS = function (ctx) {
     const o=data.event;
     return '<section aria-labelledby="ccs-event-teams-title"><h2 id="ccs-event-teams-title">Departamentos e equipes</h2><p class="ccs-hint">Uma equipe com data assumida ainda pode ter voluntários aguardando resposta. As confirmações individuais aparecem em cada equipe.</p>'+data.requirements.map(r=>'<article class="ccs-card ccs-dashboard-department"><div class="ccs-title-row"><h3>'+e(r.department_name)+'</h3><span class="ccs-count-pill">'+(r.events||[]).filter(ev=>ev.status==='published').length+'/'+num(r.team_count||1)+' equipes</span></div>'+((r.events||[]).map(ev=>{
       const t=S().teams.find(t=>same(t.id,ev.team_id)),list=S().slots.filter(s=>same(s.event_id,ev.id)&&s.status!=='withdrawn'),confirmed=list.filter(s=>s.status==='confirmed').length;
-      return '<section class="ccs-dashboard-team"><div class="ccs-title-row"><h4>'+e(ev.team_name)+'</h4>'+badge(ev.status==='published'?'confirmed':'cancelled',ev.status==='published'?'Data assumida':'Participação cancelada')+'</div><p>Responsável: '+e(t?.leader_id?ctx.user(t.leader_id):'Não definido')+'</p><p class="ccs-hint">'+e(ctx.modeLabel(ev.mode))+' · '+confirmed+'/'+list.length+' participações confirmadas</p>'+((list.length)?'<details class="ccs-team-assignments"><summary>Ver designações ('+list.length+')</summary><ul>'+list.map(slot=>'<li><div><strong>'+e(slot.function_name||(ev.mode==='roster'?'Integrante':'Participação'))+'</strong><span>'+e(slot.assigned_id?ctx.user(slot.assigned_id):'Vaga disponível')+'</span></div>'+badge(slot.status)+'</li>').join('')+'</ul></details>':'<p class="ccs-hint">Nenhuma vaga publicada para esta equipe.</p>')+'</section>';
+      return '<section class="ccs-dashboard-team"><div class="ccs-title-row"><h4>'+e(ev.team_name)+'</h4>'+badge(ev.status==='published'?'confirmed':'cancelled',ev.status==='published'?'Data assumida':'Participação cancelada')+'</div><p>Responsável: '+e(t?.leader_id?ctx.user(t.leader_id):'Não definido')+'</p><p class="ccs-hint">'+e(ctx.modeLabel(ev.mode))+' · '+confirmed+'/'+list.length+' participações confirmadas</p>'+((list.length)?'<details class="ccs-team-assignments"><summary>Ver designações ('+list.length+')</summary><ul>'+list.map(slot=>'<li><div><strong>'+e(slot.function_name||(ev.mode==='roster'?'Integrante':'Participação'))+'</strong><span>'+e(slotPerson(slot,ev))+'</span></div>'+slotBadge(slot,ev)+'</li>').join('')+'</ul></details>':'<p class="ccs-hint">Nenhuma vaga publicada para esta equipe.</p>')+'</section>';
     }).join('')||'<p>Nenhuma equipe assumiu esta data.</p>')+(r.required!==false&&r.missing_team&&o.status==='published'?'<p class="ccs-task-warning">Falta definir '+num(r.remaining_teams)+' equipe(s).</p>':'')+(r.can_assign?'<div class="ccs-actions">'+button('Definir equipes','assign_occurrence',o.id+':'+r.department_id)+'</div>':'')+'</article>').join('')+'</section>';
   }
   function dashboard() {
@@ -100,20 +102,22 @@ window.CCS_EVENT_VIEWS = function (ctx) {
     const rows=list.map(s=>{
       const own=same(s.assigned_id,S().me.id),invitation=S().invites.find(i=>same(i.slot_id,s.id)&&i.status==='pending');
       let actions='';
-      if(canAct&&s.status==='available'&&s.can_claim) actions+=button('Assumir esta vaga','claim',s.id,'');
-      if(canAct&&s.status==='available'&&ev.can_delegate) actions+=button('Designar voluntário','delegate',s.id);
+      if(canAct&&ev.mode!=='assigned'&&s.status==='available'&&s.can_claim) actions+=button('Assumir esta vaga','claim',s.id,'');
+      if(canAct&&ev.can_delegate&&(s.status==='available'||ev.mode==='assigned')) actions+=button(ev.mode==='assigned'?(num(s.assigned_id)?'Alterar convocação':'Convocar integrante'):'Designar voluntário','delegate',s.id);
       if(canAct&&own) {
         if(s.status!=='confirmed') actions+=button('Confirmar participação','confirm',s.id,'');
         actions+=s.status!=='declined'?button('Não posso participar','decline',s.id):button(invitation?'Escolher outro substituto':'Solicitar troca','invite',s.id);
         if(['open','functions'].includes(ev.mode)) actions+=button('Liberar minha vaga','release_slot',s.id,'text');
       }
-      return '<article class="ccs-slot"><h4>'+e(s.function_name||(ev.mode==='roster'?'Integrante da equipe':'Participação'))+'</h4><div class="ccs-slot-head"><strong>'+e(s.status==='available'?'Vaga disponível':ctx.user(s.assigned_id))+(own?' · você':'')+'</strong>'+badge(s.status)+'</div>'+
+      if(canAct&&ev.mode==='assigned'&&ev.can_delegate&&num(s.assigned_id))actions+=button('Retirar convocação','clear_convocation',s.id,'text');
+      return '<article class="ccs-slot"><h4>'+e(s.function_name||(ev.mode==='roster'?'Integrante da equipe':'Participação'))+'</h4><div class="ccs-slot-head"><strong>'+e(slotPerson(s,ev))+(own?' · você':'')+'</strong>'+slotBadge(s,ev)+'</div>'+
         (num(s.original_id)&&!same(s.original_id,s.assigned_id)?'<p>Substituindo '+e(ctx.user(s.original_id))+'</p>':'')+
         (invitation?'<p>Convite aguardando '+e(ctx.user(invitation.to_id))+'</p>':'')+
         (actions?'<div class="ccs-actions">'+actions+'</div>':'')+'</article>';
     }).join('');
     const history=(S().audit||[]).filter(a=>same(a.event_id,ev.id));
     return '<section class="ccs-team-participation"><div class="ccs-team-participation-heading"><h4>'+e(ev.team_name)+'</h4><span>'+e(ctx.modeLabel(ev.mode))+'</span></div>'+
+      (ev.mode==='assigned'?'<p class="ccs-hint">As funções desta equipe são preenchidas pela liderança, por convocação.</p>':'')+
       (ev.notes?'<p class="ccs-notes">'+e(ev.notes)+'</p>':'')+rows+
       (canAct&&ev.can_delegate?'<div class="ccs-actions">'+button('Ajustar vagas por função','vacancies',ev.id)+'</div>':'')+
       (canAct&&ev.can_manage?'<div class="ccs-actions ccs-team-tools">'+button('Orientações desta equipe','edit_schedule',ev.id)+button('Liberar participação da equipe','release_event_team',ev.id,'text')+(t?.is_department&&t.can_manage?button('Organizar participantes','team',t.id,'text'):'')+'</div>':'')+

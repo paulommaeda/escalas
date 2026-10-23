@@ -158,7 +158,7 @@ final class CCS {
         foreach ($wpdb->get_results('SELECT * FROM '.self::table('events')." WHERE status<>'deleted' ORDER BY starts DESC", ARRAY_A) as $e) {
             $all=$wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('slots')." WHERE event_id=%d AND status<>'withdrawn'", $e['id']), ARRAY_A);
             $e['can_manage']=self::can_manage_event($e);
-            $e['can_delegate']=$e['mode']==='functions' && self::leads_team($e['team_id']);
+            $e['can_delegate']=self::function_mode($e['mode']) && self::leads_team($e['team_id']);
             $e['can_claim']=self::can_serve($uid) && in_array($e['mode'],['open','functions'],true) && self::is_member($e['team_id'],$uid);
             $team=self::team($e['team_id']); $e['team_name']=$team ? $team['name'] : 'Equipe';
             $e['department_id']=$team?(int)$team['department_id']:0;
@@ -166,8 +166,9 @@ final class CCS {
             $events[]=$e;
             foreach ($all as $s) {
                 $s['can_claim']=$e['can_claim'] && ($e['mode']!=='functions' || self::qualified($e['team_id'],$s['function_id'],$uid));
-                $slots[]=$s;
                 $rows=$wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('invites').' WHERE slot_id=%d ORDER BY id DESC', $s['id']), ARRAY_A);
+                if ($e['can_delegate'] && $e['mode']==='assigned') { $s['convocation_fingerprint']=self::convocation_token($s,$e,$rows); }
+                $slots[]=$s;
                 foreach ($rows as $i) { if (self::secretary() || $e['can_manage'] || (int)$team['leader_id']===$uid || (int)$i['to_id']===$uid || (int)$i['from_id']===$uid) { $invites[]=$i; } }
             }
         }
@@ -246,7 +247,7 @@ final class CCS {
             $leader=absint($a['leader_id']??0); self::require_that(!$leader || self::can_serve($leader),'Líder inválido.',400);
             $members=self::ids($a['members']??[]);
             foreach ($members as $m) { self::require_that(self::can_serve($m),'A equipe contém um usuário inativo.',400); }
-            $mode=$a['mode']??'functions'; self::require_that(in_array($mode,['roster','open','functions'],true),'Modo de escala inválido.',400);
+            $mode=$a['mode']??'functions'; self::require_that(in_array($mode,['roster','open','functions','assigned'],true),'Modo de escala inválido.',400);
             $data=['name'=>self::text($a,'name'),'department_id'=>$department,'leader_id'=>$leader,'mode'=>$mode];
             if ($id) {
                 $old=self::team($id); self::require_that((int)$old['department_id']===$department,'Não é permitido mudar o departamento de uma equipe existente.',400);
@@ -275,10 +276,11 @@ final class CCS {
                 if (is_wp_error($r)) { self::fail('Não foi possível atualizar o usuário.',400); }
                 update_user_meta($id,'ccs_inactive',empty($a['active'])?'1':'0');
                 if (empty($a['active'])) {
-                    $future=$wpdb->get_results($wpdb->prepare('SELECT s.id,s.event_id,e.mode FROM '.self::table('slots').' s JOIN '.self::table('events')." e ON e.id=s.event_id WHERE s.assigned_id=%d AND e.status='published' AND e.starts>%s",$id,current_time('mysql')),ARRAY_A);
+                    $future=$wpdb->get_results($wpdb->prepare('SELECT s.id,s.event_id,s.function_name,e.mode,e.team_id,e.occurrence_id FROM '.self::table('slots').' s JOIN '.self::table('events')." e ON e.id=s.event_id WHERE s.assigned_id=%d AND e.status='published' AND e.starts>%s",$id,current_time('mysql')),ARRAY_A);
                     foreach ($future as $slot) {
-                        self::update('slots',in_array($slot['mode'],['open','functions'],true)?['status'=>'available','assigned_id'=>0,'original_id'=>0]:['status'=>'declined'],['id'=>$slot['id']]);
-                        self::audit('volunteer_deactivated',$slot['event_id'],'slot='.$slot['id']);
+                        self::update('slots',in_array($slot['mode'],['open','functions','assigned'],true)?['status'=>'available','assigned_id'=>0,'original_id'=>0]:['status'=>'declined'],['id'=>$slot['id']]);
+                        $audit=self::audit('volunteer_deactivated',$slot['event_id'],'slot='.$slot['id']);
+                        if ($slot['mode']==='assigned') { self::notify_people(self::team_recipients($slot['team_id'],false),'convocation_pending','Função aguardando convocação',$slot['function_name'].' · '.self::event_title($slot['event_id']).'. A pessoa designada foi inativada. Escolha outro integrante.',$slot['occurrence_id'],$slot['event_id'],'inactive-convocation:'.$audit); }
                     }
                     self::update('invites',['status'=>'cancelled'],['to_id'=>$id,'status'=>'pending']);
                     self::update('invites',['status'=>'cancelled'],['from_id'=>$id,'status'=>'pending']);
@@ -314,6 +316,12 @@ final class CCS {
                         self::update('invites',['status'=>'cancelled'],['slot_id'=>$slot['id'],'status'=>'pending']);
                         continue;
                     }
+                    if ($event['mode']==='assigned') {
+                        $user=(int)$slot['assigned_id'];$active=self::can_serve($user);
+                        if ($active) { self::require_that(!self::conflict($user,$data['arrival'],$data['ends'],0,$id),'Conflito de horário: '.self::name($user),409); }
+                        self::update('slots',['status'=>$user?($active?'pending':'declined'):'available'],['id'=>$slot['id']]);
+                        self::update('invites',['status'=>'cancelled'],['slot_id'=>$slot['id'],'status'=>'pending']);continue;
+                    }
                     $active=self::can_serve($slot['original_id']);
                     if ($active) { self::require_that(!self::conflict($slot['original_id'],$data['arrival'],$data['ends'],0,$id),'Conflito de horário: '.self::name($slot['original_id']),409); }
                     self::update('slots',['assigned_id'=>$slot['original_id'],'status'=>$active?'pending':'declined'],['id'=>$slot['id']]);
@@ -324,6 +332,7 @@ final class CCS {
             $audit=self::audit('schedule_edited',$id,wp_json_encode(['before'=>$event,'after'=>$data,'reset'=>$changed]));
             self::notify_people(self::team_recipients($event['team_id']),'team_updated','Orientações da sua equipe atualizadas',$event['title'].'. Confira as orientações de '.self::team($event['team_id'])['name'].'.',$event['occurrence_id'],$id,'team-edit:'.$audit);
             if ($changed && in_array($event['mode'],['open','functions'],true)) { return 'Horários alterados. A vaga foi reaberta para uma nova escolha.'; }
+            if ($changed && $event['mode']==='assigned') { return 'Horários alterados. As pessoas atualmente convocadas precisam confirmar novamente.'; }
             return $changed?'Horários alterados. Os integrantes originais precisam confirmar novamente; substituições anteriores não valem para o novo horário.':'Escala atualizada.';
         case 'cancel':
             $e=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.self::table('events').' WHERE id=%d',$id),ARRAY_A);

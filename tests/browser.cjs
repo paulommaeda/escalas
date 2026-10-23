@@ -1,4 +1,4 @@
-const fs=require('fs'),assert=require('assert'),fixture=require('./event-fixture.cjs'),taskFixture=require('./task-fixture.cjs');
+const fs=require('fs'),assert=require('assert'),fixture=require('./event-fixture.cjs'),taskFixture=require('./task-fixture.cjs'),convocationFixture=require('./convocation-fixture.cjs');
 const {chromium}=require(process.env.CCS_PLAYWRIGHT_MODULE||'playwright');
 (async()=>{
   const browser=await chromium.launch({headless:true,...(process.env.CCS_BROWSER_EXECUTABLE?{executablePath:process.env.CCS_BROWSER_EXECUTABLE}:{})});
@@ -21,6 +21,15 @@ const {chromium}=require(process.env.CCS_PLAYWRIGHT_MODULE||'playwright');
         Object.assign(t,{...data,id:t.id,occurrence_id:Number(data.occurrence_id),department_id:Number(data.department_id),team_id:Number(data.team_id),assigned_id:Number(data.assigned_id),version:Number(t.version)+1,due_at:data.due_at.replace('T',' ')+':00',assigned_name:state.users.find(u=>u.id===Number(data.assigned_id)).name,department_name:state.departments.find(d=>d.id===Number(data.department_id))?.name||'Organização geral',team_name:state.teams.find(team=>team.id===Number(data.team_id))?.name||'',event_status:'published',event_title:state.occurrences.find(o=>o.id===Number(data.occurrence_id)).title,updated_name:'Administrador',updated_at:state.now,can_edit:true,can_delete:true,can_move:true});
       }
       if(data.action==='task_delete')state.tasks=state.tasks.filter(t=>t.id!==Number(data.id));
+      if(data.action==='function')state.functions.push({id:Math.max(...state.functions.map(f=>Number(f.id)))+1,name:data.name});
+      if(data.action==='team'&&data.mode==='assigned'){
+        const team=state.teams.find(t=>t.id===Number(data.id));if(team){team.mode='assigned';team.members=data.members;team.functions=data.functions.map(f=>({...f,name:state.functions.find(fn=>fn.id===Number(f.id)).name,members:state.users.filter(u=>(u.function_ids||[]).includes(Number(f.id))).map(u=>u.id)}));}
+      }
+      if(data.action==='delegate'||data.action==='clear_convocation'){
+        const slot=state.slots.find(s=>s.id===Number(data.id)),ev=state.events.find(e=>e.id===Number(slot.event_id));
+        if(ev.mode==='assigned'&&data.fingerprint!==slot.convocation_fingerprint)return route.fulfill({status:409,json:{message:'Esta convocação mudou. Atualize o evento antes de alterar a pessoa designada.'}});
+        const to=data.action==='delegate'?Number(data.to_id):0;slot.assigned_id=to;slot.original_id=to;slot.status=to?'confirmed':'available';slot.convocation_fingerprint='updated-'+slot.id+'-'+actions.length;
+      }
       if(data.action==='respond')state.slots.find(s=>s.id===Number(data.id)).status=data.status;
       if(data.action==='notice_read'){state.inbox.items.forEach(n=>n.read_at='2026-10-22 11:00:00');state.inbox.unread=0;}
       return route.fulfill({json:{ok:true,message:'Salvo'}});
@@ -163,6 +172,38 @@ const {chromium}=require(process.env.CCS_PLAYWRIGHT_MODULE||'playwright');
   assert.equal(await page.locator('[data-task-card]').count(),2);assert.equal(await page.locator('[data-task-card="202"]').count(),0);
   await page.locator('[data-task-card="201"] [data-action="task_move"][data-id="201:done"]').click();await page.waitForFunction(()=>Array.from(document.querySelectorAll('[data-task-card="201"] p')).some(p=>p.textContent.includes('Concluído')));
   assert(actions.some(a=>a.action==='task_move'&&Number(a.id)===201&&a.status==='done'));
+  // Directed functions: arbitrary catalogue functions, qualified appointments and no self-claim.
+  state=convocationFixture('admin');await page.goto('http://fixture.test/');await page.waitForSelector('[data-view="manage"]');await page.locator('[data-view="manage"]').click();
+  await page.locator('.ccs-tabs [data-action="manage_schedules"]').click();await page.locator('.ccs-management-actions [data-action="catalog"]').click();await page.locator('#ccs-dialog [data-action="function"][data-id="0"]').click();
+  await page.locator('form[data-form="function"] [name="name"]').fill('Leitura bíblica pastoral');await page.locator('form[data-form="function"] [type="submit"]').click();await page.waitForSelector('#ccs-dialog[open]',{state:'detached'});await page.waitForSelector('.ccs-management-actions [data-action="catalog"]:not([disabled])');
+  await page.locator('[data-view="teams"]').click();await page.locator('[data-action="team_details"][data-id="10"]').click();await page.locator('#ccs-dialog [data-action="team"][data-id="10"]').click();
+  assert.equal(await page.locator('form[data-form="team"] [name="mode"]').inputValue(),'assigned');assert((await page.locator('form[data-form="team"] [name="mode"] option[value="assigned"]').innerText()).includes('Convocação por função'));
+  await page.locator('[data-function-row="32"] [name="team_function"]').check();await page.locator('form[data-form="team"] [type="submit"]').click();await page.waitForSelector('#ccs-dialog[open]',{state:'detached'});await page.waitForSelector('[data-action="team_details"]:not([disabled])');
+  assert(actions.filter(a=>a.action==='team').at(-1).functions.some(f=>Number(f.id)===32));
+  await page.locator('[data-view="home"]').click();await page.locator('[data-calendar-event="50"] [data-action="occurrence"]').click();
+  assert.equal(await page.locator('#ccs-dialog [data-action="claim"]').count(),0);assert((await page.locator('#ccs-dialog').innerText()).includes('Aguardando convocação'));
+  for(const width of [360,390,768]){await page.setViewportSize({width,height:844});assert(await page.evaluate(()=>{const d=document.querySelector('#ccs-dialog');return d.scrollWidth<=d.clientWidth+1;}),'directed event fits mobile '+width);}
+  await page.locator('#ccs-dialog [data-action="delegate"][data-id="60"]').click();
+  assert.deepEqual(await page.locator('form[data-form="delegate"] [name="to_id"] option').evaluateAll(options=>options.map(o=>o.value)),['','1','2']);
+  assert.equal(await page.locator('form[data-form="delegate"] [name="fingerprint"]').inputValue(),'convocation-60-0');
+  await page.locator('form[data-form="delegate"] [name="to_id"]').selectOption('1');await page.locator('form[data-form="delegate"] [type="submit"]').click();
+  await page.waitForSelector('#ccs-dialog.ccs-event-dialog[open] [data-action="clear_convocation"][data-id="60"]:not([disabled])');
+  assert((await page.locator('#ccs-dialog .ccs-team-participation').first().innerText()).includes('Pastor João'));
+  await page.locator('#ccs-dialog [data-action="delegate"][data-id="60"]').click();await page.locator('form[data-form="delegate"] [name="to_id"]').selectOption('2');
+  state.slots.find(s=>s.id===60).convocation_fingerprint='changed-on-server';
+  await page.locator('form[data-form="delegate"] [type="submit"]').click();await page.waitForFunction(()=>document.querySelector('#ccs-dialog .ccs-form-error')?.textContent.includes('Esta convocação mudou'));
+  assert.equal(state.slots.find(s=>s.id===60).assigned_id,1);
+  await page.locator('#ccs-dialog .ccs-dialog-head [data-action="close"]').click();await page.locator('#ccs-content [data-action="refresh"]').click();await page.waitForFunction(()=>document.querySelector('#ccs-message').textContent==='Escalas atualizadas.');
+  await page.waitForSelector('#ccs-content [data-action="occurrence"]:not([disabled])');await page.locator('[data-calendar-event="50"] [data-action="occurrence"]').click();await page.locator('#ccs-dialog [data-action="delegate"][data-id="60"]').click();
+  await page.locator('form[data-form="delegate"] [name="to_id"]').selectOption('2');await page.locator('form[data-form="delegate"] [type="submit"]').click();await page.waitForSelector('#ccs-dialog.ccs-event-dialog[open] [data-action="clear_convocation"][data-id="60"]:not([disabled])');
+  assert.equal(state.slots.find(s=>s.id===60).assigned_id,2);
+  await page.locator('#ccs-dialog [data-action="clear_convocation"][data-id="60"]').click();await page.locator('form[data-form="clear_convocation"] [name="confirm"]').check();await page.locator('form[data-form="clear_convocation"] [type="submit"]').click();
+  await page.waitForSelector('#ccs-dialog.ccs-event-dialog[open] [data-action="delegate"][data-id="60"]:not([disabled])');assert.equal(state.slots.find(s=>s.id===60).assigned_id,0);assert.equal(await page.locator('#ccs-dialog [data-action="claim"]').count(),0);
+  state=convocationFixture('leader');await page.goto('http://fixture.test/?ccs_event=50');await page.waitForSelector('#ccs-dialog.ccs-event-dialog[open]');assert.equal(await page.locator('[data-view="manage"]').count(),0);assert.equal(await page.locator('#ccs-dialog [data-action="delegate"][data-id="60"]').count(),1);
+  state=convocationFixture('volunteer');Object.assign(state.slots[0],{assigned_id:1,original_id:1,status:'confirmed'});await page.goto('http://fixture.test/?ccs_event=50');await page.waitForSelector('#ccs-dialog.ccs-event-dialog[open]');
+  assert.equal(await page.locator('#ccs-dialog [data-action="delegate"]').count(),0);assert.equal(await page.locator('#ccs-dialog [data-action="claim"]').count(),0);assert.equal(await page.locator('#ccs-dialog [data-action="release_slot"]').count(),0);
+  await page.locator('#ccs-dialog [data-action="decline"][data-id="60"]').click();await page.waitForSelector('form[data-form="invite"]');assert.equal(await page.locator('form[data-form="invite"] [name="to_id"] option[value="2"]').count(),1);assert.equal(await page.locator('form[data-form="invite"] [name="to_id"] option[value="4"]').count(),0);
+  state=convocationFixture('secretary');await page.goto('http://fixture.test/?ccs_event=50');await page.waitForSelector('#ccs-dialog.ccs-event-dialog[open]');assert.equal(await page.locator('#ccs-dialog [data-action="delegate"]').count(),0);assert.equal(await page.locator('#ccs-dialog [data-action="clear_convocation"]').count(),0);
   assert.equal(errors.length,0,errors.join('\n'));await browser.close();
-  console.log('PASS navegador: evento único, edição própria, perfil push persistente, sino, link direto, busca/seleção de integrantes, equipes resumidas, gestão por data, tarefas e Kanban (criar/editar/mover/arrastar/concluir/excluir/conflito), perfis e mobile');
+  console.log('PASS navegador: evento único, edição própria, perfil push persistente, sino, link direto, busca/seleção de integrantes, equipes resumidas, gestão por data, tarefas e Kanban (criar/editar/mover/arrastar/concluir/excluir/conflito), perfis, convocação dirigida com funções livres e mobile');
 })().catch(e=>{console.error(e);process.exit(1)});

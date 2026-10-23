@@ -43,6 +43,7 @@ wp_set_current_user($p);check(!CCS::import_allowed(),'pastor not admin cannot im
 require __DIR__.'/import.php';
 require __DIR__.'/events.php';
 require __DIR__.'/tasks.php';
+require __DIR__.'/convocations.php';
 $mock=['tag_name'=>'v9.9.9','draft'=>false,'prerelease'=>false,'body'=>'Release','assets'=>[['name'=>'ccshalom-escalas.zip','browser_download_url'=>'https://github.com/paulommaeda/escalas/releases/download/v9.9.9/ccshalom-escalas.zip']]];
 add_filter('pre_http_request',function($pre,$args,$url) use (&$mock) { if (str_starts_with($url,'https://api.github.com/repos/')) { return ['headers'=>[],'response'=>['code'=>200],'body'=>wp_json_encode($mock),'cookies'=>[]]; }return $pre; },10,3);
 wp_set_current_user($admin);

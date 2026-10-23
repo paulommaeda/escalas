@@ -59,7 +59,12 @@ trait CCS_Notifications {
     public static function notify_team_publication($event,$audit) {
         global $wpdb;
         $e=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.self::table('events').' WHERE id=%d',$event),ARRAY_A);if (!$e) { return; }
-        $team=self::team($e['team_id']);$title=$e['mode']==='roster'?'Você foi convocado':'Vagas disponíveis na sua equipe';
+        $team=self::team($e['team_id']);
+        if ($e['mode']==='assigned') {
+            self::notify_people(self::team_recipients($e['team_id'],false),'team_published','Defina as convocações da equipe',$team['name'].' · '.$e['title'].'. Escolha os integrantes para cada função. As pessoas serão avisadas quando forem designadas.',$e['occurrence_id'],$event,'team:'.$audit);
+            return;
+        }
+        $title=$e['mode']==='roster'?'Você foi convocado':'Vagas disponíveis na sua equipe';
         self::notify_people(self::team_recipients($e['team_id']),'team_published',$title,$team['name'].' · '.$e['title'].($e['mode']==='roster'?'. Confirme sua participação.':'. Veja as vagas e escolha como servir.'),$e['occurrence_id'],$event,'team:'.$audit);
     }
     public static function notify_occurrence_changed($id,$type,$audit) {

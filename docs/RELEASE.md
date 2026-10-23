@@ -1,13 +1,13 @@
-## CCShalom Escalas 0.13.0
+## CCShalom Escalas 0.14.0
 
-- Gestão por evento: selecione o evento ou a data de uma celebração e abra o dashboard completo daquela data.
-- Consulte departamentos, equipes com data assumida, responsáveis, formatos de convocação, designações, vagas e confirmações individuais. A confirmação da equipe é apresentada separadamente das respostas dos voluntários.
-- Marque a data como evento especial para usar tarefas com responsável, prazo, descrição e vínculo opcional com departamento/equipe. Datas existentes podem ativar o quadro em Configurar tarefas.
-- Kanban com A fazer, Em andamento e Concluído, indicadores de atraso e progresso, filtros por responsável/departamento, botões no celular e arrastar no computador.
-- O responsável acompanha Minhas escalas → Minhas tarefas e atualiza somente a etapa de suas tarefas. Atribuições e alterações geram avisos no sino e usam a integração Portal Push existente.
-- Líderes de departamento gerenciam tarefas de seu departamento; administradores e pastores organizam o evento completo. Secretaria permanece somente para consulta.
-- Edições simultâneas são recusadas para evitar sobrescrita. Cancelamento deixa tarefas em consulta; exclusão preserva histórico. Tarefas e configurações são por data, sem alterar outras celebrações.
+- Novo formato de equipe: **Convocação por função pela liderança**, indicado para a Pastoral e para outras equipes designadas pela liderança.
+- Crie livremente funções no cadastro geral, como Pregação, Direção do culto, Ceia e outras. Selecione as funções e quantidades da equipe e habilite os integrantes correspondentes.
+- A participação da equipe cria necessidades por função. A liderança escolhe os integrantes; não há voluntariado nessas vagas nem convocação automática de toda a equipe.
+- A atribuição fica confirmada e gera aviso individual. A pessoa pode informar indisponibilidade e solicitar substituição pela mesma função, com aceite.
+- A liderança pode alterar ou retirar convocações; a pessoa anterior é avisada e os pedidos de troca pendentes são cancelados. Edições desatualizadas são recusadas para evitar sobrescritas.
+- Novas funções podem ser acrescentadas às equipes e, quando necessário, às datas publicadas por Ajustar vagas por função.
+- Formatos e confirmações das datas existentes são preservados ao alterar o padrão da equipe. Secretaria permanece em consulta e as permissões de gestão continuam sendo respeitadas.
 
-Atualize em **Escalas → Atualizações → Verificar agora**. A migração cria a estrutura de tarefas e preserva cadastros, escalas, confirmações e trocas.
+Atualize em **Escalas → Atualizações → Verificar agora**. Depois, edite a equipe Pastoral e selecione o novo formato. Ele será usado nas próximas participações publicadas.
 
-O workflow valida os novos fluxos em WordPress/MySQL e Chromium/mobile, além das regressões de importação, atualizador, Portal Push e SMTP.
+O workflow valida os fluxos dirigidos em WordPress/MySQL e Chromium/mobile, além das regressões de eventos, tarefas/Kanban, importação, atualizador, Portal Push e SMTP.

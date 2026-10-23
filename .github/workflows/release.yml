@@ -39,6 +39,7 @@ jobs:
           node tests/people.cjs
           node tests/events.cjs
           node tests/tasks.cjs
+          node tests/convocations.cjs
       - name: Interface mobile no navegador
         env:
           CCS_PLAYWRIGHT_MODULE: /tmp/ccs-browser/node_modules/playwright

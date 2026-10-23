@@ -21,6 +21,28 @@ trait CCS_Functions {
     public static function can_catalog() {
         return self::management_access() && !self::secretary();
     }
+    public static function function_mode($mode) { return in_array($mode,['functions','assigned'],true); }
+    private static function convocation_token($slot,$event,$invites) {
+        $snapshot=[];
+        foreach (['id','event_id','function_id','original_id','assigned_id'] as $key) { $snapshot[$key]=(int)$slot[$key]; }
+        foreach (['function_name','status'] as $key) { $snapshot[$key]=(string)$slot[$key]; }
+        $timing=[];foreach (['mode','arrival','starts','ends'] as $key) { $timing[$key]=(string)$event[$key]; }
+        $timing['status']=(string)($event['event_status']??$event['status']);
+        $requests=array_map(fn($i)=>['id'=>(int)$i['id'],'from_id'=>(int)$i['from_id'],'to_id'=>(int)$i['to_id'],'status'=>(string)$i['status']],$invites);
+        usort($requests,fn($a,$b)=>$a['id']<=>$b['id']);
+        return hash('sha256',wp_json_encode([$snapshot,$timing,$requests]));
+    }
+    public static function convocation_fingerprint($id) {
+        global $wpdb;
+        $slot=$wpdb->get_row($wpdb->prepare('SELECT s.*,e.mode,e.arrival,e.starts,e.ends,e.status event_status FROM '.self::table('slots').' s JOIN '.self::table('events').' e ON e.id=s.event_id WHERE s.id=%d',$id),ARRAY_A);
+        if (!$slot) { return ''; }
+        $invites=$wpdb->get_results($wpdb->prepare('SELECT id,from_id,to_id,status FROM '.self::table('invites').' WHERE slot_id=%d ORDER BY id',$id),ARRAY_A);
+        return self::convocation_token($slot,$slot,$invites);
+    }
+    private static function check_convocation($slot,$data) {
+        self::require_that($slot['mode']==='assigned' && self::leads_team($slot['team_id']));
+        self::require_that(is_string($data['fingerprint']??null) && hash_equals(self::convocation_fingerprint($slot['id']),$data['fingerprint']),'Esta convocação mudou. Atualize o evento antes de alterar a pessoa designada.',409);
+    }
     public static function has_function($function,$user) {
         global $wpdb;
         return self::can_serve($user) && (bool)$wpdb->get_var($wpdb->prepare('SELECT q.user_id FROM '.self::table('qualifications').' q JOIN '.self::table('functions').' f ON f.id=q.function_id WHERE f.id=%d AND f.active=1 AND q.user_id=%d',$function,$user));
@@ -111,18 +133,34 @@ trait CCS_Functions {
             if ($id) { self::update('functions',$data,['id'=>$id]); } else { $id=self::insert('functions',$data); }
             self::audit('function_saved',0,'function='.$id);
             return 'Função salva no cadastro geral.';
+        case 'clear_convocation':
+            $s=self::slot($id);self::check_convocation($s,$a);
+            self::require_that(($a['confirm']??false)===true,'Confirme a retirada desta convocação.',400);
+            self::require_that((int)$s['assigned_id']>0,'Esta função já está sem pessoa designada.',409);
+            self::update('slots',['original_id'=>0,'assigned_id'=>0,'status'=>'available'],['id'=>$id]);
+            self::update('invites',['status'=>'cancelled'],['slot_id'=>$id,'status'=>'pending']);
+            $audit=self::audit('convocation_removed',$s['event_id'],'slot='.$id.';previous='.$s['assigned_id']);
+            self::notify_people([$s['assigned_id']],'convocation_removed','Sua convocação foi retirada',$s['function_name'].' · '.self::event_title($s['event_id']).'. A liderança retirou sua designação para esta função.',$s['occurrence_id'],$s['event_id'],'convocation-remove:'.$audit);
+            return 'Convocação retirada. A função aguarda uma nova designação pela liderança.';
         case 'delegate':
-            $s=self::slot($id); self::require_that($s['mode']==='functions' && self::leads_team($s['team_id']));
-            self::require_that($s['status']==='available' && !(int)$s['assigned_id'],'Esta vaga já foi preenchida. Atualize a lista.',409);
+            $s=self::slot($id); self::require_that(self::function_mode($s['mode']) && self::leads_team($s['team_id']));
+            $directed=$s['mode']==='assigned';
+            if ($directed) { self::check_convocation($s,$a); }
+            else { self::require_that($s['status']==='available' && !(int)$s['assigned_id'],'Esta vaga já foi preenchida. Atualize a lista.',409); }
             $to=absint($a['to_id']??0); self::require_that(self::qualified($s['team_id'],$s['function_id'],$to),'Escolha um integrante cadastrado nesta função.',400);
-            self::require_that(!self::conflict($to,$s['arrival'],$s['ends'],$id),'O voluntário já está escalado neste horário.',409);
+            self::require_that(!self::conflict($to,$s['arrival'],$s['ends'],$id),'A pessoa já está escalada neste horário.',409);
+            if ($directed && (int)$s['assigned_id']===$to && $s['status']==='confirmed') { return 'Esta pessoa já está convocada e confirmada nesta função.'; }
             self::update('slots',['original_id'=>$to,'assigned_id'=>$to,'status'=>'confirmed'],['id'=>$id]);
-            $audit=self::audit('function_delegated',$s['event_id'],'slot='.$id.';to='.$to);
-            self::notify_people([$to],'assigned','Sua participação está confirmada',$s['function_name'].' · '.self::event_title($s['event_id']).'. Você pode consultar o evento, declinar ou solicitar uma troca.',$s['occurrence_id'],$s['event_id'],'delegation:'.$audit);
-            return 'Função atribuída e confirmada. O voluntário pode declinar e solicitar uma troca.';
+            self::update('invites',['status'=>'cancelled'],['slot_id'=>$id,'status'=>'pending']);
+            $audit=self::audit('function_delegated',$s['event_id'],'slot='.$id.';to='.$to.';previous='.$s['assigned_id']);
+            self::notify_people([$to],'assigned',$directed?'Você foi convocado':'Sua participação está confirmada',$s['function_name'].' · '.self::event_title($s['event_id']).'. Você pode consultar o evento, declinar ou solicitar uma troca.',$s['occurrence_id'],$s['event_id'],'delegation:'.$audit);
+            if ($directed && (int)$s['assigned_id'] && (int)$s['assigned_id']!==$to) {
+                self::notify_people([$s['assigned_id']],'convocation_changed','Sua convocação foi alterada',$s['function_name'].' · '.self::event_title($s['event_id']).'. A liderança designou outra pessoa para esta função.',$s['occurrence_id'],$s['event_id'],'convocation-change:'.$audit);
+            }
+            return $directed?'Convocação salva e confirmada.':'Função atribuída e confirmada. O voluntário pode declinar e solicitar uma troca.';
         case 'vacancies':
             $event=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.self::table('events').' WHERE id=%d',$id),ARRAY_A);
-            self::require_that($event && $event['mode']==='functions' && self::leads_team($event['team_id']));
+            self::require_that($event && self::function_mode($event['mode']) && self::leads_team($event['team_id']));
             self::require_that($event['status']==='published' && $event['starts']>current_time('mysql'),'Esta escala não pode mais ser alterada.',409);
             $fid=absint($a['function_id']??0); $function=null;foreach (self::team_functions($event['team_id']) as $candidate) { if ((int)$candidate['id']===$fid) { $function=$candidate;break; } }
             if (!$function) { $function=$wpdb->get_row($wpdb->prepare('SELECT f.* FROM '.self::table('functions').' f JOIN '.self::table('slots').' s ON s.function_id=f.id WHERE f.id=%d AND s.event_id=%d LIMIT 1',$fid,$id),ARRAY_A); }
@@ -130,7 +168,7 @@ trait CCS_Functions {
             $quantity=absint($a['quantity']??1); self::require_that($quantity<=30,'Máximo de 30 vagas por função.',400);
             $slots=$wpdb->get_results($wpdb->prepare('SELECT * FROM '.self::table('slots')." WHERE event_id=%d AND function_id=%d AND status<>'withdrawn' ORDER BY id DESC",$id,$fid),ARRAY_A);
             $free=array_values(array_filter($slots,fn($s)=>$s['status']==='available' && !(int)$s['assigned_id']));
-            self::require_that($quantity>=count($slots)-count($free),'Há vagas ocupadas. Peça aos voluntários para liberá-las antes de reduzir a quantidade.',409);
+            self::require_that($quantity>=count($slots)-count($free),$event['mode']==='assigned'?'Retire as convocações ocupadas antes de reduzir a quantidade.':'Há vagas ocupadas. Peça aos voluntários para liberá-las antes de reduzir a quantidade.',409);
             for ($i=count($slots);$i<$quantity;$i++) { self::insert('slots',['event_id'=>$id,'function_id'=>$fid,'function_name'=>$function['name'],'original_id'=>0,'assigned_id'=>0,'status'=>'available']); }
             for ($i=0;$i<count($slots)-$quantity;$i++) { self::update('slots',['status'=>'withdrawn'],['id'=>$free[$i]['id']]); }
             self::audit('function_vacancies_changed',$id,'function='.$fid.';quantity='.$quantity);
