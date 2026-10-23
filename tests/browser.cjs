@@ -68,7 +68,7 @@ const {chromium}=require(process.env.CCS_PLAYWRIGHT_MODULE||'playwright');
   await page.locator('[name="dashboard-department"]').selectOption('');await page.locator('[name="dashboard-month"]').fill('2030-10');
   assert.equal(await page.locator('[data-dashboard-event]').count(),0);
   await page.locator('[data-action="dashboard_reset"]').click();assert.equal(await page.locator('[data-dashboard-event]').count(),1);
-  await page.locator('[data-action="event_dashboard"]').click();
+  await page.locator('#ccs-content [data-action="event_dashboard"]').click();
   for(const width of [360,390,768]){await page.setViewportSize({width,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'event dashboard fits mobile '+width);}
   await page.locator('[data-action="publish_event"]').click();
   assert.equal(await page.locator('[data-event-department]').count(),3);await page.locator('[data-event-enabled]').first().check();
